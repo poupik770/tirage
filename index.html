@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tirage au sort – Gagne un MacBook</title>
+  <script src="https://www.paypal.com/sdk/js?client-id=sb&currency=EUR"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f4f4;
+      margin: 0;
+      padding: 0;
+      text-align: center;
+    }
+    header {
+      background: #111;
+      color: #fff;
+      padding: 1rem;
+    }
+    .container {
+      max-width: 600px;
+      margin: 2rem auto;
+      background: #fff;
+      padding: 2rem;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    button {
+      background: #007bff;
+      color: #fff;
+      border: none;
+      padding: 1rem 2rem;
+      font-size: 1.2rem;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+    .lot-img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 10px;
+      margin-bottom: 1rem;
+    }
+    footer {
+      margin-top: 3rem;
+      font-size: 0.9rem;
+      color: #555;
+    }
+    input[type="email"] {
+      padding: 0.7rem;
+      width: 80%;
+      margin-bottom: 1rem;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1 id="titre-page">Tirage au sort : Gagne un lot 🎁</h1>
+</header>
+
+<div class="container" id="lotsContainer">
+  <!-- Les lots s'affichent ici dynamiquement -->
+</div>
+
+<div class="container">
+  <p><strong>Tickets restants : <span id="tickets">100</span></strong></p>
+  <input type="email" id="email" placeholder="Votre adresse email" required>
+  <br>
+  <div id="paypal-button-container" style="margin-top: 1rem;"></div>
+  <div id="confirmation" style="margin-top: 1rem; color: green; font-weight: bold;"></div>
+
+  <h3>FAQ</h3>
+  <p>📅 Tirage au sort le 1er septembre 2025</p>
+  <p>🎁 Plusieurs gagnants possibles selon les lots</p>
+  <p>💳 Paiement sécurisé via PayPal Sandbox (test)</p>
+</div>
+
+<footer>
+  &copy; 2025 TirageMac.fr – Règlement disponible sur demande.
+</footer>
+
+<script>
+  let lotSelectionne = null;
+  let lots = [];
+  let ticketsRestants = 100;
+
+  async function chargerLots() {
+    try {
+      const res = await fetch('/lots');
+      lots = await res.json();
+      const container = document.getElementById('lotsContainer');
+      container.innerHTML = '';
+
+      lots.forEach((lot, index) => {
+        const div = document.createElement('div');
+        div.innerHTML = `
+          <h2>${lot.nom}</h2>
+          <img src="${lot.image}" alt="${lot.nom}" class="lot-img">
+          <p>💰 Prix du ticket : <strong>${lot.prix}</strong></p>
+          <button onclick="selectionnerLot(${index})">Choisir ce lot</button>
+        `;
+        container.appendChild(div);
+      });
+    } catch (err) {
+      document.getElementById('lotsContainer').innerHTML = '<p>Impossible de charger les lots.</p>';
+      console.error(err);
+    }
+  }
+
+  function selectionnerLot(index) {
+    lotSelectionne = lots[index];
+    document.getElementById("titre-page").innerText = `🎟️ Ticket pour : ${lotSelectionne.nom}`;
+    document.getElementById("confirmation").textContent = "";
+  }
+
+  function validerAchat() {
+    const email = document.getElementById("email").value;
+    if (!email) {
+      alert("Veuillez entrer une adresse email valide.");
+      return false;
+    }
+    if (!lotSelectionne) {
+      alert("Veuillez sélectionner un lot avant d’acheter un ticket.");
+      return false;
+    }
+    if (ticketsRestants <= 0) {
+      alert("⛔ Plus de tickets disponibles.");
+      return false;
+    }
+    return true;
+  }
+
+  paypal.Buttons({
+    createOrder: function(data, actions) {
+      if (!validerAchat()) return actions.reject();
+
+      const prix = parseFloat(lotSelectionne.prix.replace(/[^\d.]/g, '')).toFixed(2);
+
+      return actions.order.create({
+        purchase_units: [{
+          amount: {
+            value: prix
+          },
+          description: `Ticket pour ${lotSelectionne.nom}`
+        }]
+      });
+    },
+    onApprove: function(data, actions) {
+      return actions.order.capture().then(function(details) {
+        ticketsRestants--;
+        document.getElementById('tickets').textContent = ticketsRestants;
+        document.getElementById('confirmation').textContent =
+          "✅ Paiement réussi via PayPal ! Ticket réservé pour " + lotSelectionne.nom;
+        document.getElementById("email").value = "";
+      });
+    },
+    onError: function(err) {
+      console.error(err);
+      document.getElementById('confirmation').textContent = "❌ Erreur de paiement.";
+    }
+  }).render('#paypal-button-container');
+
+  chargerLots();
+</script>
+
+</body>
+</html>

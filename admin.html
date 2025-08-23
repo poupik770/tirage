@@ -1,0 +1,69 @@
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panneau d'Administration</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <header class="site-header">
+    <h1>Panneau d'Administration</h1>
+  </header>
+
+  <main>
+    <section class="card login-card" id="loginSection">
+      <h2 class="card-title">🔐 Connexion</h2>
+      <div class="form-group">
+        <label for="adminPass">Mot de passe Administrateur</label>
+        <input type="password" id="adminPass" placeholder="••••••••">
+      </div>
+      <button id="loginBtn" class="btn btn-primary">Connexion</button>
+      <p id="loginError" class="error-message" style="display: none;">Mot de passe incorrect.</p>
+    </section>
+
+    <section class="admin-panel" id="adminPanel" style="display: none;">
+      
+      <div class="card">
+        <h2 class="card-title" id="formTitle">Ajouter un nouveau lot</h2>
+        <form id="lotForm">
+          <div class="form-group">
+            <label for="lotNom">Nom du lot</label>
+            <input type="text" id="lotNom" placeholder="Ex: Panier Gourmand" required>
+          </div>
+          <div class="form-group">
+            <label for="lotImage">URL de l'image</label>
+            <input type="url" id="lotImage" placeholder="https://example.com/image.jpg" required>
+          </div>
+          <div class="form-group">
+            <label for="lotPrix">Prix du ticket</label>
+            <input type="text" id="lotPrix" placeholder="Ex: 20 €" required>
+          </div>
+          <div class="form-actions">
+            <button type="submit" id="submitBtn" class="btn btn-primary">➕ Ajouter le lot</button>
+            <button type="button" id="cancelBtn" class="btn btn-secondary" style="display: none;">Annuler</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="card">
+        <h2 class="card-title">Lots Actuels</h2>
+        <div id="listeLots">
+          </div>
+        <div class="form-actions">
+             <button id="saveBtn" class="btn btn-save">💾 Sauvegarder les modifications</button>
+             <p id="sauvegardeStatus" class="status-message"></p>
+        </div>
+      </div>
+
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
