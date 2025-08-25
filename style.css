@@ -1,0 +1,151 @@
+:root {
+  --primary-color: #007bff;
+  --primary-hover: #0056b3;
+  --secondary-color: #6c757d;
+  --secondary-hover: #5a6268;
+  --danger-color: #dc3545;
+  --danger-hover: #c82333;
+  --warning-color: #ffc107;
+  --warning-hover: #e0a800;
+  --save-color: #28a745;
+  --save-hover: #218838;
+  --light-bg: #f8f9fa;
+  --white: #ffffff;
+  --border-color: #dee2e6;
+  --text-color: #212529;
+  --box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  --border-radius: 8px;
+}
+
+body {
+  font-family: 'Roboto', sans-serif;
+  background-color: var(--light-bg);
+  color: var(--text-color);
+  margin: 0;
+  padding: 2rem;
+}
+
+.site-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+main {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.card {
+  background: var(--white);
+  padding: 2rem;
+  border-radius: var(--border-radius);
+  box-shadow: var(--box-shadow);
+  margin-bottom: 2rem;
+}
+
+.card-title {
+  margin-top: 0;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 1rem;
+}
+
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+input[type="text"],
+input[type="password"],
+input[type="url"] {
+  width: 100%;
+  padding: 0.8rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  box-sizing: border-box;
+  font-size: 1rem;
+}
+
+.form-actions {
+  margin-top: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.btn {
+  padding: 0.8rem 1.2rem;
+  border: none;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 1rem;
+  transition: background-color 0.2s ease;
+  color: var(--white);
+}
+
+.btn-primary { background-color: var(--primary-color); }
+.btn-primary:hover { background-color: var(--primary-hover); }
+
+.btn-secondary { background-color: var(--secondary-color); }
+.btn-secondary:hover { background-color: var(--secondary-hover); }
+
+.btn-save { background-color: var(--save-color); }
+.btn-save:hover { background-color: var(--save-hover); }
+
+.lot-item {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  margin-bottom: 1rem;
+  background-color: #fdfdfd;
+}
+
+.lot-item img {
+  width: 120px;
+  height: 90px;
+  object-fit: cover;
+  border-radius: var(--border-radius);
+}
+
+.lot-details {
+  flex-grow: 1;
+}
+
+.lot-details strong {
+  font-size: 1.2rem;
+}
+
+.lot-actions .btn {
+  padding: 0.5rem 0.8rem;
+  font-size: 0.9rem;
+}
+
+.btn-warning { background-color: var(--warning-color); color: var(--text-color); }
+.btn-warning:hover { background-color: var(--warning-hover); }
+
+.btn-danger { background-color: var(--danger-color); }
+.btn-danger:hover { background-color: var(--danger-hover); }
+
+.error-message {
+  color: var(--danger-color);
+  margin-top: 1rem;
+}
+
+.status-message {
+    font-weight: 500;
+}
+.status-message.success {
+    color: var(--save-color);
+}
+.status-message.error {
+    color: var(--danger-color);
+}                                                                                                                                                                                                                                                                                                                                                                                                            
