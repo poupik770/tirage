@@ -3,33 +3,57 @@ const express = require("express");
 const cors = require("cors");
 const path = require("path");
 const fs = require("fs");
+const Stripe = require("stripe");
 const app = express();
+
+const stripe = Stripe("sk_test_TON_SECRET_KEY"); // <-- remplace par ta clé Stripe
 
 app.use(cors());
 app.use(express.json());
 
-// 👉 Sert tous les fichiers du dossier "public"
+// Servir fichiers statiques
 app.use(express.static(path.join(__dirname, "public")));
 
-// 👉 Exemple d’API pour récupérer lots.json
+// GET lots.json
 app.get("/api/lots", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "lots.json"));
 });
 
-// 👉 Exemple d’API pour sauvegarder un nouveau lots.json
+// POST pour sauvegarder lots.json
 app.post("/api/lots", (req, res) => {
-  const data = JSON.stringify(req.body, null, 2);
-  fs.writeFile(path.join(__dirname, "public", "lots.json"), data, (err) => {
-    if (err) {
-      console.error("Erreur en écrivant lots.json :", err);
-      return res.status(500).json({ message: "Erreur serveur" });
-    }
+  fs.writeFile(path.join(__dirname, "public", "lots.json"), JSON.stringify(req.body, null, 2), (err) => {
+    if (err) return res.status(500).json({ message: "Erreur serveur" });
     res.json({ message: "Lots sauvegardés avec succès ✅" });
   });
 });
 
-// 👉 Port Render ou local
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`✅ Serveur lancé sur http://localhost:${PORT}`);
+// Créer une session Stripe
+app.post("/create-checkout-session", async (req, res) => {
+  const { email, lot } = req.body;
+  if(!email || !lot) return res.status(400).json({ error: "Données manquantes" });
+
+  try {
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ["card"],
+      customer_email: email,
+      line_items: [{
+        price_data: {
+          currency: "eur",
+          product_data: { name: lot.nom },
+          unit_amount: lot.prix * 100,
+        },
+        quantity: 1,
+      }],
+      mode: "payment",
+      success_url: `${req.headers.origin}/success.html`,
+      cancel_url: `${req.headers.origin}/cancel.html`,
+    });
+    res.json({ url: session.url });
+  } catch(err) {
+    console.error(err);
+    res.status(500).json({ error: "Erreur Stripe" });
+  }
 });
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`✅ Serveur lancé sur http://localhost:${PORT}`));
