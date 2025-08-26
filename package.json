@@ -1,6 +1,7 @@
 {
   "name": "tirage-lots",
   "version": "1.0.0",
+  "description": "Application de tirage au sort avec admin et lots.json",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
