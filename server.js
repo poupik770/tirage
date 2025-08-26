@@ -1,32 +1,25 @@
+// server.js
 const express = require("express");
 const cors = require("cors");
-const fs = require("fs");
 const path = require("path");
-
 const app = express();
-const PORT = process.env.PORT || 3000;
 
-// Middleware
 app.use(cors());
 app.use(express.json());
-app.use(express.static("public"));
 
-// GET /lots
-app.get("/lots", (req, res) => {
-  const filePath = path.join(__dirname, "public", "lots.json");
-  fs.readFile(filePath, "utf8", (err, data) => {
-    if (err) return res.status(500).json({ error: "Impossible de lire lots.json" });
-    res.json(JSON.parse(data));
-  });
+// 👉 Sert tous les fichiers du dossier "public"
+app.use(express.static(path.join(__dirname, "public")));
+
+// 👉 Exemple d’API pour récupérer lots.json
+app.get("/api/lots", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "lots.json"));
 });
 
-// POST /save-lots
-app.post("/save-lots", (req, res) => {
-  const filePath = path.join(__dirname, "public", "lots.json");
-  fs.writeFile(filePath, JSON.stringify(req.body, null, 2), (err) => {
-    if (err) return res.status(500).json({ error: "Erreur lors de la sauvegarde" });
-    res.json({ message: "Lots sauvegardés avec succès ✅" });
-  });
-});
-
-app.listen(PORT, () => console.log("Serveur lancé sur http://localhost:" + PORT));
+// 👉 Exemple d’API pour sauvegarder un nouveau lots.json
+const fs = require("fs");
+app.post("/api/lots", (req, res) => {
+  const data = JSON.stringify(req.body, null, 2);
+  fs.writeFile(path.join(__dirname, "public", "lots.json"), data, (err) => {
+    if (err) {
+      console.error("Erreur en écrivant lots.json :", err);
+      return res.status(500).json({ message: "Erreur serveur"
