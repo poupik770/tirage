@@ -5,61 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Panneau Admin – Gestion des Lots</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #f7f7f7;
-      padding: 2rem;
-      margin: 0;
-    }
-    h1, h2 {
-      text-align: center;
-      color: #333;
-    }
-    .login, .admin-panel {
-      max-width: 600px;
-      margin: 2rem auto;
-      background: white;
-      padding: 2rem;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-      border-radius: 8px;
-    }
-    input, button {
-      width: 100%;
-      padding: 0.8rem;
-      margin: 0.5rem 0;
-      border-radius: 5px;
-      border: 1px solid #ccc;
-    }
-    button {
-      background: #28a745;
-      color: white;
-      border: none;
-      cursor: pointer;
-      font-size: 1rem;
-    }
-    button:hover {
-      background: #218838;
-    }
-    .lot-item {
-      border: 1px solid #ccc;
-      border-radius: 5px;
-      padding: 1rem;
-      margin-bottom: 1rem;
-      background: #f9f9f9;
-    }
-    .modif {
-      background: #ffc107;
-      color: black;
-    }
-    .modif:hover {
-      background: #e0a800;
-    }
-    .delete {
-      background: #dc3545;
-    }
-    .delete:hover {
-      background: #b02a37;
-    }
+    body { font-family: Arial, sans-serif; background: #f7f7f7; padding: 2rem; margin: 0; }
+    h1, h2 { text-align: center; color: #333; }
+    .login, .admin-panel { max-width: 600px; margin: 2rem auto; background: white; padding: 2rem; box-shadow: 0 0 10px rgba(0,0,0,0.1); border-radius: 8px; }
+    input, button { width: 100%; padding: 0.8rem; margin: 0.5rem 0; border-radius: 5px; border: 1px solid #ccc; }
+    button { background: #28a745; color: white; border: none; cursor: pointer; font-size: 1rem; }
+    button:hover { background: #218838; }
+    .lot-item { border: 1px solid #ccc; border-radius: 5px; padding: 1rem; margin-bottom: 1rem; background: #f9f9f9; }
+    .modif { background: #ffc107; color: black; }
+    .modif:hover { background: #e0a800; }
+    .delete { background: #dc3545; }
+    .delete:hover { background: #b02a37; }
   </style>
 </head>
 <body>
@@ -88,8 +44,8 @@
   </div>
 
   <script>
-    const BACKEND_URL = "https://tirage-tvdv.onrender.com/admin.html"; // à adapter si hébergé
-    const password = "levy770"; // mot de passe admin
+    const BACKEND_URL = "https://tirage-tvdv.onrender.com"; // ton serveur Render
+    const password = "levy770";
     let lots = [];
     let indexEnModification = null;
 
@@ -107,10 +63,12 @@
     async function chargerLots() {
       try {
         const res = await fetch(`${BACKEND_URL}/lots`);
+        if (!res.ok) throw new Error("HTTP " + res.status);
         lots = await res.json();
         afficherLots();
       } catch (err) {
         console.error("Erreur de chargement:", err);
+        alert("⚠️ Impossible de charger les lots depuis le serveur !");
       }
     }
 
@@ -175,11 +133,12 @@
 
     async function sauvegarderLots() {
       try {
-        const res = await fetch(`${BACKEND_URL}/admin/save-lots`, {
+        const res = await fetch(`${BACKEND_URL}/save-lots`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(lots)
         });
+        if (!res.ok) throw new Error("HTTP " + res.status);
         const json = await res.json();
         document.getElementById('sauvegardeStatus').textContent = '✅ ' + json.message;
       } catch (err) {
