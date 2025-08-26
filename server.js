@@ -1,41 +1,32 @@
-// server.js
-const express = require('express');
-const fs = require('fs');
-const path = require('path');
-const cors = require('cors');
-const bodyParser = require('body-parser');
+const express = require("express");
+const cors = require("cors");
+const fs = require("fs");
+const path = require("path");
 
 const app = express();
-const PORT = 3000;
-const LOTS_PATH = path.join(__dirname, 'lots.json');
+const PORT = process.env.PORT || 3000;
 
+// Middleware
 app.use(cors());
-app.use(bodyParser.json());
-app.use(express.static(__dirname));
+app.use(express.json());
+app.use(express.static("public"));
 
-// 🔹 Lire les lots (depuis lots.json)
-app.get('/lots', (req, res) => {
-  fs.readFile(LOTS_PATH, 'utf8', (err, data) => {
-    if (err) {
-      console.error("Erreur lecture lots:", err);
-      return res.status(500).json({ error: 'Erreur de lecture des lots' });
-    }
+// GET /lots
+app.get("/lots", (req, res) => {
+  const filePath = path.join(__dirname, "public", "lots.json");
+  fs.readFile(filePath, "utf8", (err, data) => {
+    if (err) return res.status(500).json({ error: "Impossible de lire lots.json" });
     res.json(JSON.parse(data));
   });
 });
 
-// 🔹 Enregistrer les lots (depuis l'interface admin)
-app.post('/admin/save-lots', (req, res) => {
-  fs.writeFile(LOTS_PATH, JSON.stringify(req.body, null, 2), (err) => {
-    if (err) {
-      console.error("Erreur écriture lots:", err);
-      return res.status(500).json({ error: 'Erreur de sauvegarde' });
-    }
-    res.json({ message: 'Lots enregistrés avec succès' });
+// POST /save-lots
+app.post("/save-lots", (req, res) => {
+  const filePath = path.join(__dirname, "public", "lots.json");
+  fs.writeFile(filePath, JSON.stringify(req.body, null, 2), (err) => {
+    if (err) return res.status(500).json({ error: "Erreur lors de la sauvegarde" });
+    res.json({ message: "Lots sauvegardés avec succès ✅" });
   });
 });
 
-// 🔹 Lancer le serveur
-app.listen(PORT, () => {
-  console.log(`✅ Serveur lancé sur http://localhost:${PORT}`);
-});
+app.listen(PORT, () => console.log("Serveur lancé sur http://localhost:" + PORT));
