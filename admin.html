@@ -62,7 +62,7 @@
 
     async function chargerLots() {
       try {
-        const res = await fetch(`${BACKEND_URL}/lots`);
+        const res = await fetch(`${BACKEND_URL}/api/lots`);
         if (!res.ok) throw new Error("HTTP " + res.status);
         lots = await res.json();
         afficherLots();
@@ -133,7 +133,7 @@
 
     async function sauvegarderLots() {
       try {
-        const res = await fetch(`${BACKEND_URL}/save-lots`, {
+        const res = await fetch(`${BACKEND_URL}/api/lots`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(lots)
@@ -149,6 +149,3 @@
   </script>
 </body>
 </html>
-
-
-
