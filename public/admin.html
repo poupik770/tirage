@@ -57,15 +57,107 @@
 
     function login() {
       const passInput = document.getElementById("adminPass").value;
+      console.log("Mot de passe tapé :", passInput); // debug
+      console.log("Mot de passe attendu :", password); // debug
+
       if (passInput === password) {
+        console.log("✅ Connexion réussie");
         document.getElementById("loginSection").style.display = "none";
         document.getElementById("adminPanel").style.display = "block";
         chargerLots();
       } else {
+        console.log("❌ Mot de passe incorrect");
         document.getElementById("loginError").style.display = "block";
       }
     }
 
     async function chargerLots() {
       try {
-        const res = await
+        console.log("📡 Chargement des lots depuis :", `${BACKEND_URL}/api/lots`);
+        const res = await fetch(`${BACKEND_URL}/api/lots`);
+        if (!res.ok) throw new Error("Erreur HTTP " + res.status);
+        lots = await res.json();
+        console.log("✅ Lots reçus :", lots);
+        afficherLots();
+      } catch (err) {
+        console.error("Erreur de chargement:", err);
+      }
+    }
+
+    function ajouterOuModifierLot() {
+      const nom = document.getElementById("lotNom").value;
+      const image = document.getElementById("lotImage").value;
+      const prix = document.getElementById("lotPrix").value;
+      const date = document.getElementById("lotDate").value;
+
+      if (!nom || !image || !prix || !date) {
+        alert("⚠️ Remplis tous les champs !");
+        return;
+      }
+
+      if (indexEnModification !== null) {
+        lots[indexEnModification] = { nom, image, prix, date };
+        indexEnModification = null;
+        document.getElementById("ajoutBtn").textContent = "Ajouter le lot";
+      } else {
+        lots.push({ nom, image, prix, date });
+      }
+
+      afficherLots();
+      document.getElementById("lotNom").value = "";
+      document.getElementById("lotImage").value = "";
+      document.getElementById("lotPrix").value = "";
+      document.getElementById("lotDate").value = "";
+    }
+
+    function modifierLot(index) {
+      const lot = lots[index];
+      document.getElementById("lotNom").value = lot.nom;
+      document.getElementById("lotImage").value = lot.image;
+      document.getElementById("lotPrix").value = lot.prix;
+      document.getElementById("lotDate").value = lot.date;
+      indexEnModification = index;
+      document.getElementById("ajoutBtn").textContent = "Modifier le lot";
+    }
+
+    function afficherLots() {
+      const liste = document.getElementById("listeLots");
+      liste.innerHTML = "";
+      lots.forEach((lot, index) => {
+        const div = document.createElement("div");
+        div.className = "lot-item";
+        div.innerHTML = `
+          <strong>${lot.nom}</strong><br>
+          <img src="${lot.image}" alt="${lot.nom}" style="width: 100%; max-height: 200px; object-fit: cover;"><br>
+          🎟️ ${lot.prix} €<br>
+          📅 Tirage: ${lot.date}<br>
+          <button onclick="modifierLot(${index})" class="modif">Modifier</button>
+          <button onclick="supprimerLot(${index})" class="delete">Supprimer</button>
+        `;
+        liste.appendChild(div);
+      });
+    }
+
+    function supprimerLot(index) {
+      lots.splice(index, 1);
+      afficherLots();
+    }
+
+    async function sauvegarderLots() {
+      try {
+        console.log("💾 Envoi des lots vers :", `${BACKEND_URL}/api/lots`, lots);
+        const res = await fetch(`${BACKEND_URL}/api/lots`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(lots)
+        });
+        const json = await res.json();
+        document.getElementById("sauvegardeStatus").textContent = "✅ " + json.message;
+      } catch (err) {
+        document.getElementById("sauvegardeStatus").textContent = "❌ Erreur lors de la sauvegarde";
+        console.error("Erreur sauvegarde:", err);
+      }
+    }
+  </script>
+</body>
+</html>
