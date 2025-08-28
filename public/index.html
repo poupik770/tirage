@@ -3,28 +3,21 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Tirages au sort – Tentez votre chance !</title>
+  <title>Accueil - Tirage Exclusif</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
-    html {
-      scroll-behavior: smooth;
-    }
     body {
       font-family: 'Poppins', sans-serif;
       background-color: #f0f2f5;
       color: #333;
       margin: 0;
-      /* Le padding est déplacé vers .main-content pour la barre de navigation sticky */
     }
     .navbar {
       background-color: #fff;
       padding: 1rem 2rem;
       box-shadow: 0 2px 4px rgba(0,0,0,0.08);
-      position: sticky;
-      top: 0;
-      z-index: 1000;
     }
     .nav-container {
       display: flex;
@@ -43,7 +36,6 @@
       list-style: none;
       display: flex;
       gap: 2.5rem;
-      flex-wrap: wrap; /* Permet au menu de passer à la ligne si besoin */
       margin: 0;
       padding: 0;
     }
@@ -57,82 +49,87 @@
     .nav-menu a:hover {
       color: #4f46e5;
     }
-    .main-content {
-      padding: 2rem;
-    }
-    .header {
-      text-align: center;
-      margin-bottom: 3rem;
-    }
-    .header h1 {
-      font-size: 2.5rem;
-      font-weight: 700;
-      color: #1a202c;
-      margin-bottom: 0.5rem;
-    }
-    .header p {
-      font-size: 1.1rem;
-      color: #555;
-    }
-    #listeLots {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-      gap: 2rem;
-      max-width: 1200px;
-      margin: 0 auto;
-    }
-    .lot {
-      background: white;
-      border-radius: 12px;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 10px 20px rgba(0, 0, 0, 0.05);
-      text-align: center;
-      overflow: hidden;
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    .hero {
       display: flex;
       flex-direction: column;
-    }
-    .lot:hover {
-      transform: translateY(-8px);
-      box-shadow: 0 10px 15px rgba(0, 0, 0, 0.07), 0 20px 40px rgba(0, 0, 0, 0.07);
-    }
-    .lot img {
-      width: 100%;
-      /* On utilise un ratio pour que l'image s'adapte parfaitement à la largeur de la carte */
-      aspect-ratio: 16 / 9;
-      object-fit: cover;
-      transition: transform 0.35s ease;
-    }
-    .lot:hover img {
-      transform: scale(1.05); /* Effet de zoom subtil sur l'image au survol */
-    }
-    .lot-content {
-      padding: 1.5rem;
-      flex-grow: 1;
-      display: flex;
-      flex-direction: column;
-    }
-    .lot-content h2 {
-      font-size: 1.5rem;
-      margin: 0 0 0.5rem 0;
-      color: #2d3748;
-    }
-    .lot-content .prix {
-      font-size: 1.75rem;
-      font-weight: 700;
-      color: #2c5282;
-      margin: 0.5rem 0;
-    }
-    .lot-content .date {
-      font-size: 0.9rem;
-      color: #718096;
-      margin-bottom: 1.5rem;
-    }
-    .lot-content button {
-      margin-top: auto;
-      padding: 0.9rem;
-      background: linear-gradient(45deg, #4f46e5, #818cf8);
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 6rem 2rem;
+      /* Image de fond avec un dégradé de couleur par-dessus */
+      background: linear-gradient(45deg, rgba(79, 70, 229, 0.8), rgba(129, 140, 248, 0.8)), url('https://images.unsplash.com/photo-1593344484962-796b55d73c54?q=80&w=2070&auto=format&fit=crop') no-repeat center center/cover;
       color: white;
+      min-height: 50vh;
+    }
+    .hero h1 {
+      font-size: 3.5rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+      text-shadow: 2px 2px 8px rgba(0,0,0,0.4);
+    }
+    .hero p {
+      font-size: 1.25rem;
+      max-width: 600px;
+      margin-bottom: 2rem;
+    }
+    .hero .cta-button {
+      padding: 1rem 2.5rem;
+      background-color: #fff;
+      color: #4f46e5;
       border: none;
+      border-radius: 50px;
+      font-size: 1.1rem;
+      font-weight: 700;
+      text-decoration: none;
+      transition: transform 0.2s ease, background-color 0.2s ease;
+    }
+    .hero .cta-button:hover {
+      transform: scale(1.05);
+      background-color: #f0f2f5;
+    }
+    .footer {
+      text-align: center;
+      padding: 2rem;
+      margin-top: 4rem;
+      background-color: #e2e8f0;
+      color: #4a5568;
+      font-size: 0.9rem;
+    }
+    @media screen and (max-width: 768px) {
+      .nav-container { flex-direction: column; gap: 1rem; }
+      .nav-menu { gap: 1.5rem; justify-content: center; flex-wrap: wrap; }
+      .hero h1 { font-size: 2.5rem; }
+      .hero p { font-size: 1.1rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav class="navbar">
+    <div class="nav-container">
+      <a href="index.html" class="nav-logo">Tirage Exclusif</a>
+      <ul class="nav-menu">
+        <li><a href="index.html">Accueil</a></li>
+        <li><a href="lots.html">Nos Lots</a></li>
+        <li><a href="prochains-lots.html">Prochains Lots</a></li>
+        <li><a href="faq.html">FAQ</a></li>
+        <li><a href="contact.html">Contact</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <main class="hero">
+    <h1>Tirage Exclusif</h1>
+    <p>Votre chance de remporter des lots incroyables n'est qu'à un clic. Participez maintenant !</p>
+    <a href="lots.html" class="cta-button">Voir les lots</a>
+  </main>
+
+  <footer class="footer">
+    <p>&copy; 2024 Tirage Exclusif. Tous droits réservés.</p>
+  </footer>
+
+</body>
+</html>
       border-radius: 8px;
       cursor: pointer;
       width: 100%;
