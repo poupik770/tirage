@@ -67,6 +67,12 @@ app.post('/api/paypal/create-order', async (req, res) => {
             return res.status(404).json({ error: "Lot non trouvé." });
         }
 
+        const prix = parseFloat(lot.prix);
+        if (isNaN(prix) || prix <= 0) {
+            console.error(`Prix invalide pour le lot ${lotId}: '${lot.prix}'. Le paiement ne peut pas être créé.`);
+            return res.status(400).json({ error: "Le prix configuré pour ce lot est invalide." });
+        }
+
         const request = new paypal.orders.OrdersCreateRequest();
         request.prefer("return=representation");
         request.requestBody({
@@ -74,7 +80,8 @@ app.post('/api/paypal/create-order', async (req, res) => {
             purchase_units: [{
                 amount: {
                     currency_code: 'EUR',
-                    value: lot.prix.toString()
+                    // Utiliser le prix validé et formaté à 2 décimales
+                    value: prix.toFixed(2)
                 },
                 description: `Ticket pour le tirage: ${lot.nom}`,
                 custom_id: lot.id
