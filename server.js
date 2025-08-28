@@ -8,6 +8,7 @@ const paypal = require('@paypal/checkout-server-sdk');
 
 const app = express();
 const DB_PATH = path.join(__dirname, "public", "lots.json");
+const TICKETS_DB_PATH = path.join(__dirname, "tickets.json");
 
 app.use(cors());
 app.use(express.json());
@@ -16,24 +17,24 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
 // --- Fonctions utilitaires pour la base de données ---
-function readDatabase() {
+function readDatabase(filePath) {
   try {
-    if (fs.existsSync(DB_PATH)) {
-      const fileContent = fs.readFileSync(DB_PATH, 'utf-8');
+    if (fs.existsSync(filePath)) {
+      const fileContent = fs.readFileSync(filePath, 'utf-8');
       // Si le fichier est vide, retourne un tableau vide pour éviter une erreur de parsing
       return fileContent ? JSON.parse(fileContent) : [];
     }
     // Si le fichier n'existe pas, retourne un tableau vide
     return [];
   } catch (error) {
-    console.error("Erreur de lecture ou de parsing de lots.json:", error);
+    console.error(`Erreur de lecture ou de parsing de ${filePath}:`, error);
     return []; // Retourne un tableau vide en cas d'erreur
   }
 }
 
 // --- API pour les lots ---
 app.get("/api/lots", (req, res) => {
-  const lots = readDatabase();
+  const lots = readDatabase(DB_PATH);
   res.json(lots);
 });
 
@@ -59,7 +60,7 @@ app.post('/api/paypal/create-order', async (req, res) => {
     }
 
     try {
-        const dbData = readDatabase();
+        const dbData = readDatabase(DB_PATH);
         const lot = dbData.find(l => l.id === lotId);
 
         if (!lot) {
@@ -104,8 +105,30 @@ app.post('/api/paypal/capture-order', async (req, res) => {
         const capture = await client.execute(request);
         const captureDetails = capture.result;
 
-        console.log('Paiement capturé avec succès pour la commande:', orderID);
-        // C'est ici que vous enregistrerez le ticket dans votre base de données.
+        // Paiement réussi, maintenant on enregistre le ticket.
+        const lotId = captureDetails.purchase_units[0].custom_id;
+        const payerInfo = captureDetails.payer;
+
+        if (!lotId) {
+            // Ne devrait jamais arriver si la création de commande fonctionne bien
+            console.error("CRITICAL: ID de lot non trouvé dans la capture PayPal pour la commande:", orderID);
+        }
+
+        const newTicket = {
+            ticketId: `ticket_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            lotId: lotId,
+            orderId: orderID,
+            purchaseDate: new Date().toISOString(),
+            payer: {
+                email: payerInfo.email_address,
+                name: `${payerInfo.name.given_name} ${payerInfo.name.surname}`
+            }
+        };
+
+        const tickets = readDatabase(TICKETS_DB_PATH);
+        tickets.push(newTicket);
+        fs.writeFileSync(TICKETS_DB_PATH, JSON.stringify(tickets, null, 2));
+        console.log(`✅ Ticket enregistré pour le lot ${lotId}. Payé par ${payerInfo.email_address}.`);
 
         res.status(200).json(captureDetails);
 
