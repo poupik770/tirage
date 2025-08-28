@@ -35,6 +35,7 @@
     <input type="text" id="lotNom" placeholder="Nom du lot">
     <input type="text" id="lotImage" placeholder="URL de l'image">
     <input type="number" id="lotPrix" placeholder="Prix du ticket (€)">
+    <input type="number" id="lotTotalTickets" placeholder="Nombre total de tickets">
     <input type="datetime-local" id="lotDate" placeholder="Date du tirage">
     <button onclick="ajouterOuModifierLot()" id="ajoutBtn">Ajouter le lot</button>
 
@@ -57,27 +58,19 @@
 
     function login() {
       const passInput = document.getElementById("adminPass").value;
-      console.log("Mot de passe tapé :", passInput); // debug
-      console.log("Mot de passe attendu :", password); // debug
-
       if (passInput === password) {
-        console.log("✅ Connexion réussie");
         document.getElementById("loginSection").style.display = "none";
         document.getElementById("adminPanel").style.display = "block";
         chargerLots();
       } else {
-        console.log("❌ Mot de passe incorrect");
         document.getElementById("loginError").style.display = "block";
       }
     }
 
     async function chargerLots() {
       try {
-        console.log("📡 Chargement des lots depuis :", `${BACKEND_URL}/api/lots`);
         const res = await fetch(`${BACKEND_URL}/api/lots`);
-        if (!res.ok) throw new Error("Erreur HTTP " + res.status);
         lots = await res.json();
-        console.log("✅ Lots reçus :", lots);
         afficherLots();
       } catch (err) {
         console.error("Erreur de chargement:", err);
@@ -88,19 +81,22 @@
       const nom = document.getElementById("lotNom").value;
       const image = document.getElementById("lotImage").value;
       const prix = document.getElementById("lotPrix").value;
+      const totalTickets = document.getElementById("lotTotalTickets").value;
       const date = document.getElementById("lotDate").value;
 
-      if (!nom || !image || !prix || !date) {
+      if (!nom || !image || !prix || !date || !totalTickets) {
         alert("⚠️ Remplis tous les champs !");
         return;
       }
 
+      const lotData = { nom, image, prix, date, totalTickets: parseInt(totalTickets, 10) };
+
       if (indexEnModification !== null) {
-        lots[indexEnModification] = { nom, image, prix, date };
+        lots[indexEnModification] = lotData;
         indexEnModification = null;
         document.getElementById("ajoutBtn").textContent = "Ajouter le lot";
       } else {
-        lots.push({ nom, image, prix, date });
+        lots.push(lotData);
       }
 
       afficherLots();
@@ -108,6 +104,7 @@
       document.getElementById("lotImage").value = "";
       document.getElementById("lotPrix").value = "";
       document.getElementById("lotDate").value = "";
+      document.getElementById("lotTotalTickets").value = "";
     }
 
     function modifierLot(index) {
@@ -115,6 +112,7 @@
       document.getElementById("lotNom").value = lot.nom;
       document.getElementById("lotImage").value = lot.image;
       document.getElementById("lotPrix").value = lot.prix;
+      document.getElementById("lotTotalTickets").value = lot.totalTickets;
       document.getElementById("lotDate").value = lot.date;
       indexEnModification = index;
       document.getElementById("ajoutBtn").textContent = "Modifier le lot";
@@ -130,6 +128,7 @@
           <strong>${lot.nom}</strong><br>
           <img src="${lot.image}" alt="${lot.nom}" style="width: 100%; max-height: 200px; object-fit: cover;"><br>
           🎟️ ${lot.prix} €<br>
+          🎫 Total Tickets: ${lot.totalTickets || 'N/A'}<br>
           📅 Tirage: ${lot.date}<br>
           <button onclick="modifierLot(${index})" class="modif">Modifier</button>
           <button onclick="supprimerLot(${index})" class="delete">Supprimer</button>
@@ -145,19 +144,18 @@
 
     async function sauvegarderLots() {
       try {
-        console.log("💾 Envoi des lots vers :", `${BACKEND_URL}/api/lots`, lots);
         const res = await fetch(`${BACKEND_URL}/api/lots`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(lots)
         });
         const json = await res.json();
-        document.getElementById("sauvegardeStatus").textContent = "✅ " + json.message;
+        document.getElementById('sauvegardeStatus').textContent = '✅ ' + json.message;
       } catch (err) {
-        document.getElementById("sauvegardeStatus").textContent = "❌ Erreur lors de la sauvegarde";
-        console.error("Erreur sauvegarde:", err);
+        document.getElementById('sauvegardeStatus').textContent = '❌ Erreur lors de la sauvegarde';
       }
     }
+
   </script>
 </body>
 </html>

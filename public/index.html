@@ -3,63 +3,232 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Loterie – Sélection des lots</title>
+  <title>Tirages au sort – Tentez votre chance !</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
     body {
-      font-family: Arial, sans-serif;
-      background: #f7f7f7;
-      padding: 2rem;
-      margin: 0;
-    }
-    h1 {
-      text-align: center;
-      margin-bottom: 2rem;
+      font-family: 'Poppins', sans-serif;
+      background-color: #f0f2f5;
       color: #333;
+      margin: 0;
+      padding: 2rem;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+    .header h1 {
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: #1a202c;
+      margin-bottom: 0.5rem;
+    }
+    .header p {
+      font-size: 1.1rem;
+      color: #555;
+    }
+    #listeLots {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 2rem;
+      max-width: 1200px;
+      margin: 0 auto;
     }
     .lot {
-      max-width: 400px;
-      margin: 1rem auto;
       background: white;
-      padding: 1rem;
-      border-radius: 8px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      border-radius: 12px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 10px 20px rgba(0, 0, 0, 0.05);
       text-align: center;
+      overflow: hidden;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      display: flex;
+      flex-direction: column;
+    }
+    .lot:hover {
+      transform: translateY(-8px);
+      box-shadow: 0 10px 15px rgba(0, 0, 0, 0.07), 0 20px 40px rgba(0, 0, 0, 0.07);
     }
     .lot img {
       width: 100%;
-      max-height: 200px;
+      /* On utilise un ratio pour que l'image s'adapte parfaitement à la largeur de la carte */
+      aspect-ratio: 16 / 9;
       object-fit: cover;
-      border-radius: 8px;
+      transition: transform 0.35s ease;
     }
-    button {
-      margin-top: 1rem;
-      padding: 0.8rem;
-      background: #007bff;
+    .lot:hover img {
+      transform: scale(1.05); /* Effet de zoom subtil sur l'image au survol */
+    }
+    .lot-content {
+      padding: 1.5rem;
+      flex-grow: 1;
+      display: flex;
+      flex-direction: column;
+    }
+    .lot-content h2 {
+      font-size: 1.5rem;
+      margin: 0 0 0.5rem 0;
+      color: #2d3748;
+    }
+    .lot-content .prix {
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: #2c5282;
+      margin: 0.5rem 0;
+    }
+    .lot-content .date {
+      font-size: 0.9rem;
+      color: #718096;
+      margin-bottom: 1.5rem;
+    }
+    .lot-content button {
+      margin-top: auto;
+      padding: 0.9rem;
+      background: linear-gradient(45deg, #4f46e5, #818cf8);
       color: white;
       border: none;
-      border-radius: 5px;
+      border-radius: 8px;
       cursor: pointer;
       width: 100%;
+      font-size: 1rem;
+      font-weight: 600;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
-    button:hover {
-      background: #0056b3;
+    .lot-content button:disabled {
+      background: #a0aec0;
+      cursor: not-allowed;
+      box-shadow: none;
+      transform: none;
+    }
+    .lot-content .tickets-restants {
+      background-color: #fefcbf;
+      color: #92400e;
+      padding: 0.5rem;
+      border-radius: 6px;
+      margin: 0 0 1rem 0;
+      font-weight: 600;
+    }
+    .lot-content .tickets-restants.sold-out {
+      background-color: #fee2e2;
+      color: #991b1b;
+    }
+    .lot-content button:hover {
+      transform: scale(1.03);
+      box-shadow: 0 4px 20px rgba(79, 70, 229, 0.4);
+    }
+    .info-sections {
+      max-width: 900px;
+      margin: 4rem auto 2rem auto;
+      padding: 0 2rem;
+    }
+    .info-sections h2 {
+      text-align: center;
+      font-size: 2rem;
+      font-weight: 700;
+      color: #1a202c;
+      margin-bottom: 2rem;
+    }
+    .faq-section, .contact-section {
+      margin-bottom: 3rem;
+    }
+    details {
+      background: #fff;
+      border-radius: 8px;
+      margin-bottom: 1rem;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+      border: 1px solid #e2e8f0;
+    }
+    summary {
+      padding: 1rem 1.5rem;
+      font-weight: 600;
+      cursor: pointer;
+      list-style: none; /* Remove default marker */
+      position: relative;
+      color: #2d3748;
+    }
+    summary::-webkit-details-marker {
+      display: none; /* Chrome */
+    }
+    summary::after { /* Custom marker */
+      content: '+';
+      position: absolute;
+      right: 1.5rem;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 1.5rem;
+      color: #4f46e5;
+      transition: transform 0.2s ease;
+    }
+    details[open] summary::after {
+      transform: translateY(-50%) rotate(45deg);
+    }
+    details p {
+      padding: 0 1.5rem 1rem 1.5rem;
+      margin: 0;
+      color: #4a5568;
+      line-height: 1.6;
+    }
+    .contact-section p {
+      text-align: center;
+      font-size: 1.1rem;
+      line-height: 1.7;
+    }
+    .contact-section a {
+      color: #4f46e5;
+      font-weight: 600;
+      text-decoration: none;
+    }
+    .contact-section a:hover {
+      text-decoration: underline;
     }
   </style>
 </head>
 <body>
 
-  <h1>🎟️ Choisissez votre Lot</h1>
-  <div id="listeLots"></div>
+  <header class="header">
+    <h1>Participez à nos tirages exclusifs</h1>
+    <p>Sélectionnez un lot ci-dessous pour tenter votre chance !</p>
+  </header>
+  <main>
+    <div id="listeLots"></div>
+  </main>
+
+  <div class="info-sections">
+    <section class="faq-section">
+      <h2>Questions Fréquentes (FAQ)</h2>
+      <details>
+        <summary>Comment fonctionne le tirage au sort ?</summary>
+        <p>Chaque ticket acheté vous donne une chance de gagner. Le tirage est effectué de manière totalement aléatoire à la date indiquée, en utilisant un système informatique certifié.</p>
+      </details>
+      <details>
+        <summary>Le paiement est-il sécurisé ?</summary>
+        <p>Oui, toutes les transactions sont traitées par Stripe, l'une des plateformes de paiement les plus sécurisées au monde. Nous n'avons jamais accès à vos informations de carte bancaire.</p>
+      </details>
+      <details>
+        <summary>Que se passe-t-il si je gagne ?</summary>
+        <p>Si vous êtes l'heureux gagnant, nous vous contacterons directement par email dans les 24 heures suivant le tirage pour organiser la remise de votre lot.</p>
+      </details>
+    </section>
+
+    <section class="contact-section">
+      <h2>Nous Contacter</h2>
+      <p>Pour toute question ou demande d'information, n'hésitez pas à nous envoyer un email à l'adresse suivante : <a href="mailto:contact@votresite.com">contact@votresite.com</a>. Nous vous répondrons dans les plus brefs délais.</p>
+    </section>
+  </div>
 
   <script>
+    // Auto-détection backend
+    const BACKEND_URL =
+      window.location.hostname === "localhost"
+        ? "http://localhost:3000"
+        : "https://tirage-tvdv.onrender.com";
 
-    const BACKEND_URL = "https://tirage-tvdv.onrender.com"; // ⚠️ changer en ligne
     let lots = [];
 
     async function chargerLots() {
       try {
         const res = await fetch(`${BACKEND_URL}/api/lots`);
-      
         lots = await res.json();
         afficherLots();
       } catch (err) {
@@ -73,38 +242,71 @@
       lots.forEach(lot => {
         const div = document.createElement("div");
         div.className = "lot";
+
+        const dateFormatee = new Date(lot.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+        let ticketsInfo = '';
+        let estEpuise = false;
+        // On vérifie que le lot a un nombre total de tickets défini
+        if (lot.totalTickets) {
+            const ticketsVendus = lot.ticketsVendus || 0; // Cette donnée doit venir du backend
+            const ticketsRestants = lot.totalTickets - ticketsVendus;
+
+            if (ticketsRestants > 0) {
+                ticketsInfo = `<p class="tickets-restants">🔥 <strong>${ticketsRestants}</strong> tickets restants !</p>`;
+            } else {
+                ticketsInfo = `<p class="tickets-restants sold-out">🎉 Tous les tickets sont vendus !</p>`;
+                estEpuise = true;
+            }
+        }
+
         div.innerHTML = `
-          <h2>${lot.nom}</h2>
           <img src="${lot.image}" alt="${lot.nom}">
-          <p>🎟️ Prix: ${lot.prix} €</p>
-          <p>📅 Tirage: ${lot.date}</p>
-          <button onclick='acheterLot(${JSON.stringify(lot)})'>Acheter un ticket</button>
+          <div class="lot-content">
+            <h2>${lot.nom}</h2>
+            <p class="date">📅 Tirage le ${dateFormatee}</p>
+            ${ticketsInfo}
+            <p class="prix">${lot.prix} €</p>
+            <button onclick='acheterLot(${JSON.stringify(lot)})'>Tenter ma chance (Carte / PayPal)</button>
+          </div>
         `;
+
+        if (estEpuise) {
+            const button = div.querySelector('button');
+            button.disabled = true;
+            button.textContent = 'Épuisé';
+        }
+
         container.appendChild(div);
       });
     }
 
     async function acheterLot(lot) {
       try {
-        // ⚡ envoie au backend pour créer une session Stripe
+        // On s'assure que le prix est un nombre valide avant de l'envoyer
+        const prixNumerique = parseFloat(String(lot.prix).replace(',', '.'));
+        if (isNaN(prixNumerique) || prixNumerique <= 0) {
+          alert("❌ Erreur : Le prix du lot est invalide.");
+          return;
+        }
+
         const res = await fetch(`${BACKEND_URL}/create-checkout-session`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            email: prompt("Entrez votre email :"),
-            lot
-          })
+          // On envoie l'objet lot directement, comme attendu par le serveur
+          body: JSON.stringify({ ...lot, prix: prixNumerique })
         });
         const data = await res.json();
 
-        if (data.url) {
-          window.location.href = data.url; // redirection vers Stripe Checkout
+        if (res.ok && data.url) {
+          window.location.href = data.url; // Redirection vers Stripe Checkout
         } else {
-          alert("❌ Erreur de paiement");
+          const errorMessage = data.error || "Le serveur a renvoyé une réponse inattendue.";
+          alert(`❌ Erreur de paiement : ${errorMessage}`);
         }
       } catch (err) {
         console.error("Erreur:", err);
-        alert("❌ Impossible de lancer le paiement.");
+        alert(`❌ Impossible de contacter le serveur de paiement. Erreur : ${err.message}`);
       }
     }
 
@@ -112,8 +314,3 @@
   </script>
 </body>
 </html>
-
-
-
-
-
