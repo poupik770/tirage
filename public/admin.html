@@ -71,9 +71,25 @@
       try {
         const res = await fetch(`${BACKEND_URL}/api/lots`);
         lots = await res.json();
+
+        // Vérification et correction automatique des lots sans ID
+        const lotsSansId = lots.filter(lot => !lot.id);
+        if (lotsSansId.length > 0) {
+          console.log(`Détection de ${lotsSansId.length} lot(s) sans ID. Correction en cours...`);
+          lots.forEach(lot => {
+            if (!lot.id) {
+              lot.id = 'lot_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            }
+          });
+
+          // Sauvegarde automatique des corrections
+          await sauvegarderLots();
+          document.getElementById('sauvegardeStatus').textContent = '✅ Correction : Des IDs manquants ont été ajoutés et sauvegardés.';
+        }
+
         afficherLots();
       } catch (err) {
-        console.error("Erreur de chargement:", err);
+        console.error("Erreur de chargement ou de correction des lots:", err);
       }
     }
 
@@ -90,12 +106,16 @@
       }
 
       const lotData = { nom, image, prix, date, totalTickets: parseInt(totalTickets, 10) };
-
+      
       if (indexEnModification !== null) {
+        // On préserve l'ID existant pour ne pas le perdre lors de la modification
+        lotData.id = lots[indexEnModification].id;
         lots[indexEnModification] = lotData;
         indexEnModification = null;
         document.getElementById("ajoutBtn").textContent = "Ajouter le lot";
       } else {
+        // Pour un nouveau lot, on assigne un ID unique immédiatement
+        lotData.id = 'lot_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
         lots.push(lotData);
       }
 
@@ -108,11 +128,15 @@
     }
 
     function modifierLot(index) {
+      // On s'assure que le lot a un ID, sinon on lui en assigne un pour la modification
+      if (!lots[index].id) {
+        lots[index].id = 'lot_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+      }
       const lot = lots[index];
       document.getElementById("lotNom").value = lot.nom;
       document.getElementById("lotImage").value = lot.image;
       document.getElementById("lotPrix").value = lot.prix;
-      document.getElementById("lotTotalTickets").value = lot.totalTickets;
+      document.getElementById("lotTotalTickets").value = lot.totalTickets || '';
       document.getElementById("lotDate").value = lot.date;
       indexEnModification = index;
       document.getElementById("ajoutBtn").textContent = "Modifier le lot";
@@ -122,6 +146,11 @@
       const liste = document.getElementById("listeLots");
       liste.innerHTML = "";
       lots.forEach((lot, index) => {
+        // Si un lot n'a pas d'ID (ancien lot), on lui en donne un temporaire pour que les boutons fonctionnent
+        if (!lot.id) {
+          lot.id = 'temp_' + index;
+        }
+
         const div = document.createElement("div");
         div.className = "lot-item";
         div.innerHTML = `
@@ -147,7 +176,13 @@
         const res = await fetch(`${BACKEND_URL}/api/lots`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(lots)
+          // On s'assure que chaque lot a un ID permanent avant de sauvegarder
+          body: JSON.stringify(lots.map(lot => {
+            if (!lot.id || lot.id.startsWith('temp_')) {
+              lot.id = 'lot_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            }
+            return lot;
+          }))
         });
         const json = await res.json();
         document.getElementById('sauvegardeStatus').textContent = '✅ ' + json.message;

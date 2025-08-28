@@ -8,9 +8,6 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
-    html {
-      scroll-behavior: smooth;
-    }
     body {
       font-family: 'Poppins', sans-serif;
       background-color: #f0f2f5;
@@ -21,9 +18,6 @@
       background-color: #fff;
       padding: 1rem 2rem;
       box-shadow: 0 2px 4px rgba(0,0,0,0.08);
-      position: sticky;
-      top: 0;
-      z-index: 1000;
     }
     .nav-container {
       display: flex;
@@ -42,7 +36,6 @@
       list-style: none;
       display: flex;
       gap: 2.5rem;
-      flex-wrap: wrap;
       margin: 0;
       padding: 0;
     }
@@ -56,109 +49,52 @@
     .nav-menu a:hover {
       color: #4f46e5;
     }
-    .main-content {
-      padding: 2rem;
+    .container {
+      max-width: 1200px;
+      margin: 2rem auto;
+      padding: 0 2rem;
     }
-    .header {
+    h1 {
       text-align: center;
       margin-bottom: 3rem;
-    }
-    .header h1 {
-      font-size: 2.5rem;
-      font-weight: 700;
-      color: #1a202c;
-      margin-bottom: 0.5rem;
-    }
-    .header p {
-      font-size: 1.1rem;
-      color: #555;
-    }
-    #listeLots {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-      gap: 2rem;
-      max-width: 1200px;
-      margin: 0 auto;
-    }
-    .lot {
-      background: white;
-      border-radius: 12px;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 10px 20px rgba(0, 0, 0, 0.05);
-      text-align: center;
-      overflow: hidden;
-      transition: transform 0.3s ease, box-shadow 0.3s ease;
-      display: flex;
-      flex-direction: column;
-    }
-    .lot:hover {
-      transform: translateY(-8px);
-      box-shadow: 0 10px 15px rgba(0, 0, 0, 0.07), 0 20px 40px rgba(0, 0, 0, 0.07);
-    }
-    .lot img {
-      width: 100%;
-      aspect-ratio: 16 / 9;
-      object-fit: cover;
-      transition: transform 0.35s ease;
-    }
-    .lot:hover img {
-      transform: scale(1.05);
-    }
-    .lot-content {
-      padding: 1.5rem;
-      flex-grow: 1;
-      display: flex;
-      flex-direction: column;
-    }
-    .lot-content h2 {
-      font-size: 1.5rem;
-      margin: 0 0 0.5rem 0;
       color: #2d3748;
     }
-    .lot-content .prix {
-      font-size: 1.75rem;
-      font-weight: 700;
-      color: #2c5282;
-      margin: 0.5rem 0;
+    .lots-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 2rem;
     }
-    .lot-content .date {
-      font-size: 0.9rem;
-      color: #718096;
-      margin-bottom: 1.5rem;
-    }
-    .lot-content button {
-      margin-top: auto;
-      padding: 0.9rem;
-      background: linear-gradient(45deg, #4f46e5, #818cf8);
-      color: white;
-      border: none;
+    .lot-item {
+      background: #fff;
       border-radius: 8px;
-      cursor: pointer;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      transition: transform 0.2s ease;
+    }
+    .lot-item:hover {
+      transform: translateY(-5px);
+    }
+    .lot-image {
       width: 100%;
-      font-size: 1rem;
-      font-weight: 600;
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      height: 200px;
+      object-fit: cover;
     }
-    .lot-content button:disabled {
-      background: #a0aec0;
-      cursor: not-allowed;
-      box-shadow: none;
-      transform: none;
+    .lot-details {
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      flex-grow: 1;
     }
-    .lot-content .tickets-restants {
-      background-color: #fefcbf;
-      color: #92400e;
-      padding: 0.5rem;
-      border-radius: 6px;
-      margin: 0 0 1rem 0;
-      font-weight: 600;
+    .lot-details h3 {
+      margin-top: 0;
+      color: #1a202c;
     }
-    .lot-content .tickets-restants.sold-out {
-      background-color: #fee2e2;
-      color: #991b1b;
-    }
-    .lot-content button:hover {
-      transform: scale(1.03);
-      box-shadow: 0 4px 20px rgba(79, 70, 229, 0.4);
+    .lot-details p {
+      margin: 0.5rem 0;
+      color: #4a5568;
+      flex-grow: 1;
     }
     .footer {
       text-align: center;
@@ -169,21 +105,8 @@
       font-size: 0.9rem;
     }
     @media screen and (max-width: 768px) {
-      .nav-container {
-        flex-direction: column;
-        gap: 1rem;
-      }
-      .nav-menu {
-        gap: 1.5rem;
-        justify-content: center;
-      }
-      .navbar {
-        padding: 1rem;
-        position: static;
-      }
-      .main-content {
-        padding: 1.5rem;
-      }
+      .nav-container { flex-direction: column; gap: 1rem; }
+      .nav-menu { gap: 1.5rem; justify-content: center; flex-wrap: wrap; }
     }
   </style>
 </head>
@@ -193,7 +116,7 @@
     <div class="nav-container">
       <a href="index.html" class="nav-logo">Tirage Exclusif</a>
       <ul class="nav-menu">
-        <li><a href="accueil.html">Accueil</a></li>
+        <li><a href="index.html">Accueil</a></li>
         <li><a href="lots.html">Nos Lots</a></li>
         <li><a href="prochains-lots.html">Prochains Lots</a></li>
         <li><a href="faq.html">FAQ</a></li>
@@ -202,100 +125,110 @@
     </div>
   </nav>
 
-  <div class="main-content">
-    <header class="header">
-      <h1>Participez à nos tirages exclusifs</h1>
-      <p>Sélectionnez un lot ci-dessous pour tenter votre chance !</p>
-    </header>
-    <main>
-      <div id="listeLots"></div>
-    </main>
-  </div>
+  <main class="container">
+    <h1>Participez à nos tirages</h1>
+    <div id="listeLots" class="lots-grid">
+      <!-- Les lots seront insérés ici par JavaScript -->
+    </div>
+  </main>
 
   <footer class="footer">
     <p>&copy; 2024 Tirage Exclusif. Tous droits réservés.</p>
   </footer>
 
+  <!-- 1. Intégration du SDK PayPal avec votre Client ID. -->
+  <script src="https://www.paypal.com/sdk/js?client-id=AShh7OQ-AT9vhcs6c0jWcQ-QWuuiGMi2_0XvYljd_PIT5c9ll-qyBSntgaMYOUdXvCQ-Ag63Yvuhdpbs&currency=EUR"></script>
+
   <script>
-    const BACKEND_URL =
-      window.location.hostname === "localhost"
-        ? "http://localhost:3000"
-        : "https://tirage-tvdv.onrender.com";
+    const BACKEND_URL = window.location.hostname === "localhost" ? "http://localhost:3000" : "https://tirage-tvdv.onrender.com";
 
     async function chargerLots() {
-      const container = document.getElementById("listeLots");
-      const res = await fetch(`${BACKEND_URL}/api/lots`);
-      const lots = await res.json();
-
-      lots.forEach(lot => {
-        const div = document.createElement("div");
-        div.className = "lot";
-
-        const dateFormatee = new Date(lot.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-
-        let ticketsInfo = '';
-        let estEpuise = false;
-        if (lot.totalTickets) {
-            const ticketsVendus = lot.ticketsVendus || 0;
-            const ticketsRestants = lot.totalTickets - ticketsVendus;
-
-            if (ticketsRestants > 0) {
-                ticketsInfo = `<p class="tickets-restants">🔥 <strong>${ticketsRestants}</strong> tickets restants !</p>`;
-            } else {
-                ticketsInfo = `<p class="tickets-restants sold-out">🎉 Tous les tickets sont vendus !</p>`;
-                estEpuise = true;
-            }
-        }
-
-        div.innerHTML = `
-          <img src="${lot.image}" alt="${lot.nom}">
-          <div class="lot-content">
-            <h2>${lot.nom}</h2>
-            <p class="date">📅 Tirage le ${dateFormatee}</p>
-            ${ticketsInfo}
-            <p class="prix">${lot.prix} €</p>
-            <button onclick='acheterLot(${JSON.stringify(lot)})'>Tenter ma chance (Carte / PayPal)</button>
-          </div>
-        `;
-
-        if (estEpuise) {
-            const button = div.querySelector('button');
-            button.disabled = true;
-            button.textContent = 'Épuisé';
-        }
-
-        container.appendChild(div);
-      });
-    }
-
-    async function acheterLot(lot) {
       try {
-        const prixNumerique = parseFloat(String(lot.prix).replace(',', '.'));
-        if (isNaN(prixNumerique) || prixNumerique <= 0) {
-          alert("❌ Erreur : Le prix du lot est invalide.");
-          return;
-        }
-
-        const res = await fetch(`${BACKEND_URL}/create-checkout-session`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ...lot, prix: prixNumerique })
-        });
-        const data = await res.json();
-
-        if (res.ok && data.url) {
-          window.location.href = data.url;
-        } else {
-          const errorMessage = data.error || "Le serveur a renvoyé une réponse inattendue.";
-          alert(`❌ Erreur de paiement : ${errorMessage}`);
-        }
+        const res = await fetch(`${BACKEND_URL}/api/lots`);
+        const lots = await res.json();
+        afficherLots(lots);
       } catch (err) {
-        console.error("Erreur:", err);
-        alert(`❌ Impossible de contacter le serveur de paiement. Erreur : ${err.message}`);
+        console.error("Erreur de chargement des lots:", err);
+        document.getElementById('listeLots').innerHTML = "<p>Impossible de charger les lots pour le moment. Veuillez réessayer plus tard.</p>";
       }
     }
 
-    chargerLots();
+    function afficherLots(lots) {
+      const liste = document.getElementById("listeLots");
+      liste.innerHTML = "";
+      if (lots.length === 0) {
+        liste.innerHTML = "<p>Aucun lot n'est disponible pour le moment.</p>";
+        return;
+      }
+
+      lots.forEach((lot, index) => {
+        if (new Date(lot.date) < new Date()) return; // Ne pas afficher les lots passés
+
+        const div = document.createElement("div");
+        div.className = "lot-item";
+        // Assumant que le backend fournit un ID unique pour chaque lot
+        div.setAttribute('data-lot-id', lot.id || index); 
+
+        div.innerHTML = `
+          <img src="${lot.image}" alt="${lot.nom}" class="lot-image">
+          <div class="lot-details">
+            <h3>${lot.nom}</h3>
+            <p>Prix du ticket : <strong>${lot.prix} €</strong></p>
+            <p>Tirage le : ${new Date(lot.date).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
+            <!-- Le bouton PayPal sera rendu ici -->
+            <div id="paypal-button-container-${lot.id || index}" style="margin-top: 1rem;"></div>
+          </div>
+        `;
+        liste.appendChild(div);
+
+        renderPayPalButton(lot, lot.id || index);
+      });
+    }
+
+    function renderPayPalButton(lot, id) {
+      paypal.Buttons({
+        createOrder: (data, actions) => {
+          // 2. Appel au backend pour créer une commande PayPal
+          if (!lot.id) {
+            alert("Erreur : Ce lot n'a pas d'identifiant. L'achat est impossible.");
+            return Promise.reject(new Error("ID de lot manquant"));
+          }
+          return fetch(`${BACKEND_URL}/api/paypal/create-order`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ lotId: lot.id }) // Envoi de l'ID du lot au backend
+          }).then(res => {
+            if (!res.ok) {
+              // Si le serveur renvoie une erreur, on la propage pour l'afficher
+              return res.json().then(err => { throw new Error(err.error || 'Erreur du serveur lors de la création de la commande.') });
+            }
+            return res.json();
+          }).then(order => {
+            if (!order || !order.id) {
+              throw new Error("La réponse du serveur ne contient pas d'ID de commande valide.");
+            }
+            return order.id;
+          });
+        },
+        onApprove: (data, actions) => {
+          // 3. Appel au backend pour capturer le paiement après approbation de l'utilisateur
+          return fetch(`${BACKEND_URL}/api/paypal/capture-order`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ orderID: data.orderID })
+          }).then(res => res.json()).then(details => {
+            alert(`Paiement réussi ! Merci pour votre participation.`);
+            chargerLots(); // Rafraîchir la liste des lots
+          });
+        },
+        onError: (err) => {
+          console.error("Erreur PayPal ou de création de commande:", err);
+          alert(`Une erreur est survenue durant le paiement : ${err.message}. Veuillez réessayer.`);
+        }
+      }).render(`#paypal-button-container-${id}`);
+    }
+
+    document.addEventListener('DOMContentLoaded', chargerLots);
   </script>
 </body>
 </html>
