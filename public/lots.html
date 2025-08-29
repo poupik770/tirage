@@ -187,8 +187,13 @@
 
         const div = document.createElement("div");
         div.className = "lot-item";
-        // Assumant que le backend fournit un ID unique pour chaque lot
-        div.setAttribute('data-lot-id', lot.id || index); 
+        
+        // On ne traite que les lots qui ont un ID valide
+        if (!lot.id) {
+          console.warn("Lot ignoré car il n'a pas d'ID:", lot);
+          return;
+        }
+        div.setAttribute('data-lot-id', lot.id); 
 
         div.innerHTML = `
           <img src="${lot.image}" alt="${lot.nom}" class="lot-image">
@@ -197,23 +202,19 @@
             <p>Prix du ticket : <strong>${lot.prix} €</strong></p>
             <p>Tirage le : ${new Date(lot.date).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
             <!-- Le bouton PayPal sera rendu ici -->
-            <div id="paypal-button-container-${lot.id || index}" style="margin-top: 1rem;"></div>
+            <div id="paypal-button-container-${lot.id}" style="margin-top: 1rem;"></div>
           </div>
         `;
         liste.appendChild(div);
 
-        renderPayPalButton(lot, lot.id || index);
+        renderPayPalButton(lot);
       });
     }
 
-    function renderPayPalButton(lot, id) {
+    function renderPayPalButton(lot) {
       paypal.Buttons({
         createOrder: (data, actions) => {
           // 2. Appel au backend pour créer une commande PayPal
-          if (!lot.id) {
-            alert("Erreur : Ce lot n'a pas d'identifiant. L'achat est impossible.");
-            return Promise.reject(new Error("ID de lot manquant"));
-          }
           return fetch(`${BACKEND_URL}/api/paypal/create-order`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -246,7 +247,7 @@
           console.error("Erreur PayPal ou de création de commande:", err);
           alert(`Une erreur est survenue durant le paiement : ${err.message}. Veuillez réessayer.`);
         }
-      }).render(`#paypal-button-container-${id}`);
+      }).render(`#paypal-button-container-${lot.id}`);
     }
 
     document.addEventListener('DOMContentLoaded', loadPayPalSDK);
