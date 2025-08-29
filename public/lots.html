@@ -136,11 +136,32 @@
     <p>&copy; 2024 Tirage Exclusif. Tous droits réservés.</p>
   </footer>
 
-  <!-- 1. Intégration du SDK PayPal avec votre Client ID. -->
-  <script src="https://www.paypal.com/sdk/js?client-id=AShh7OQ-AT9vhcs6c0jWcQ-QWuuiGMi2_0XvYljd_PIT5c9ll-qyBSntgaMYOUdXvCQ-Ag63Yvuhdpbs&currency=EUR"></script>
+  <!-- Le SDK PayPal sera chargé dynamiquement par le script ci-dessous -->
 
   <script>
     const BACKEND_URL = window.location.hostname === "localhost" ? "http://localhost:3000" : "https://tirage-tvdv.onrender.com";
+
+    async function loadPayPalSDK() {
+      try {
+        const res = await fetch(`${BACKEND_URL}/api/config`);
+        const config = await res.json();
+        
+        if (!config.paypalClientId) {
+          throw new Error("L'ID client PayPal n'a pas été fourni par le serveur.");
+        }
+
+        const script = document.createElement('script');
+        script.src = `https://www.paypal.com/sdk/js?client-id=${config.paypalClientId}&currency=EUR`;
+        script.onload = () => {
+          console.log("SDK PayPal chargé.");
+          chargerLots(); // On charge les lots une fois le SDK prêt
+        };
+        document.head.appendChild(script);
+      } catch (error) {
+        console.error("Erreur de chargement de la configuration PayPal:", error);
+        document.getElementById('listeLots').innerHTML = "<p>Erreur de configuration du paiement. Impossible de charger les lots.</p>";
+      }
+    }
 
     async function chargerLots() {
       try {
@@ -228,7 +249,7 @@
       }).render(`#paypal-button-container-${id}`);
     }
 
-    document.addEventListener('DOMContentLoaded', chargerLots);
+    document.addEventListener('DOMContentLoaded', loadPayPalSDK);
   </script>
 </body>
 </html>

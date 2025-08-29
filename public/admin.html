@@ -38,6 +38,7 @@
     <input type="number" id="lotTotalTickets" placeholder="Nombre total de tickets">
     <input type="datetime-local" id="lotDate" placeholder="Date du tirage">
     <button onclick="ajouterOuModifierLot()" id="ajoutBtn">Ajouter le lot</button>
+    <a href="participants.html" target="_blank" style="display: block; text-align: center; margin-top: 1rem; font-size: 1.1rem;">Voir la liste des participants</a>
 
     <h2>Lots actuels</h2>
     <div id="listeLots"></div>
@@ -120,6 +121,7 @@
       }
 
       afficherLots();
+      sauvegarderLots(); // Sauvegarde automatique
       document.getElementById("lotNom").value = "";
       document.getElementById("lotImage").value = "";
       document.getElementById("lotPrix").value = "";
@@ -169,6 +171,7 @@
     function supprimerLot(index) {
       lots.splice(index, 1);
       afficherLots();
+      sauvegarderLots(); // Sauvegarde automatique
     }
 
     async function sauvegarderLots() {
@@ -185,9 +188,13 @@
           }))
         });
         const json = await res.json();
-        document.getElementById('sauvegardeStatus').textContent = '✅ ' + json.message;
+        const status = document.getElementById('sauvegardeStatus');
+        status.textContent = '✅ ' + json.message;
+        // Faire disparaître le message après quelques secondes
+        setTimeout(() => { status.textContent = ''; }, 3000);
       } catch (err) {
-        document.getElementById('sauvegardeStatus').textContent = '❌ Erreur lors de la sauvegarde';
+        const status = document.getElementById('sauvegardeStatus');
+        status.textContent = '❌ Erreur lors de la sauvegarde';
       }
     }
 
