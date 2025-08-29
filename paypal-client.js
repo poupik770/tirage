@@ -1,13 +1,17 @@
+require('dotenv').config(); // Charge les variables depuis le fichier .env pour le développement local
 const paypal = require('@paypal/checkout-server-sdk');
 
-// IMPORTANT : Pour la sécurité, il est fortement recommandé de stocker ces valeurs
-// dans des variables d'environnement (ex: sur Render) et non en clair dans le code.
-const clientId = process.env.PAYPAL_CLIENT_ID || 'AShh7OQ-AT9vhcs6c0jWcQ-QWuuiGMi2_0XvYljd_PIT5c9ll-qyBSntgaMYOUdXvCQ-Ag63Yvuhdpbs';
-const clientSecret = process.env.PAYPAL_CLIENT_SECRET || 'EI80WKng6KyqnKwJhnJhm28HUUVhJITReCAzafR8cpaKvu-0Oy5idKDyGFWHNiKYhE-mi_6ccd6CQ-Y-';
+// 1. Déterminer l'environnement (sandbox ou live) en fonction de la variable d'environnement
+const environment = process.env.PAYPAL_ENVIRONMENT === 'live'
+  ? new paypal.core.LiveEnvironment(process.env.PAYPAL_CLIENT_ID, process.env.PAYPAL_CLIENT_SECRET)
+  : new paypal.core.SandboxEnvironment(process.env.PAYPAL_CLIENT_ID, process.env.PAYPAL_CLIENT_SECRET);
 
-// Utilisation de l'environnement Sandbox pour les tests.
-// Pour passer en production, il faudra utiliser LiveEnvironment.
-const environment = new paypal.core.SandboxEnvironment(clientId, clientSecret);
+// 2. Créer le client PayPal avec le bon environnement
 const client = new paypal.core.PayPalHttpClient(environment);
 
-module.exports = { client };
+// 3. Exporter une fonction qui retourne le client configuré
+function getClient() {
+    return client;
+}
+
+module.exports = { client: getClient };

@@ -52,18 +52,28 @@
         ? "http://localhost:3000"
         : "https://tirage-tvdv.onrender.com";
 
-    const password = "levy770"; // mot de passe admin
     let lots = [];
     let indexEnModification = null;
 
-    function login() {
+    async function login() {
       const passInput = document.getElementById("adminPass").value;
-      if (passInput === password) {
+      const loginError = document.getElementById("loginError");
+      loginError.style.display = "none";
+
+      try {
+        const response = await fetch(`${BACKEND_URL}/api/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password: passInput })
+        });
+
+        if (!response.ok) throw new Error('Mot de passe incorrect');
+
         document.getElementById("loginSection").style.display = "none";
         document.getElementById("adminPanel").style.display = "block";
         chargerLots();
-      } else {
-        document.getElementById("loginError").style.display = "block";
+      } catch (error) {
+        loginError.style.display = "block";
       }
     }
 
@@ -113,11 +123,10 @@
       document.getElementById("lotTotalTickets").value = "";
     }
 
-    function modifierLot(index) {
-      // On s'assure que le lot a un ID, sinon on lui en assigne un pour la modification
-      if (!lots[index].id) {
-        lots[index].id = 'lot_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-      }
+    function modifierLot(id) {
+      const index = lots.findIndex(l => l.id === id);
+      if (index === -1) return; // Sécurité: ne rien faire si le lot n'est pas trouvé
+
       const lot = lots[index];
       document.getElementById("lotNom").value = lot.nom;
       document.getElementById("lotImage").value = lot.image;
@@ -132,11 +141,6 @@
       const liste = document.getElementById("listeLots");
       liste.innerHTML = "";
       lots.forEach((lot, index) => {
-        // Si un lot n'a pas d'ID (ancien lot), on lui en donne un temporaire pour que les boutons fonctionnent
-        if (!lot.id) {
-          lot.id = 'temp_' + index;
-        }
-
         const div = document.createElement("div");
         div.className = "lot-item";
         div.innerHTML = `
@@ -145,14 +149,17 @@
           🎟️ ${lot.prix} €<br>
           🎫 Total Tickets: ${lot.totalTickets || 'N/A'}<br>
           📅 Tirage: ${lot.date}<br>
-          <button onclick="modifierLot(${index})" class="modif">Modifier</button>
-          <button onclick="supprimerLot(${index})" class="delete">Supprimer</button>
+          <button onclick="modifierLot('${lot.id}')" class="modif">Modifier</button>
+          <button onclick="supprimerLot('${lot.id}')" class="delete">Supprimer</button>
         `;
         liste.appendChild(div);
       });
     }
 
-    function supprimerLot(index) {
+    function supprimerLot(id) {
+      const index = lots.findIndex(l => l.id === id);
+      if (index === -1) return; // Sécurité
+
       lots.splice(index, 1);
       afficherLots();
       sauvegarderLots(); // Sauvegarde automatique après suppression
