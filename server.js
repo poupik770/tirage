@@ -2,7 +2,7 @@
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
-const fs = require("fs");
+const fs = require("fs").promises; // Utiliser la version promise de fs pour les opérations asynchrones
 const { client } = require('./paypal-client'); // Importer le client PayPal
 const paypal = require('@paypal/checkout-server-sdk');
 
@@ -17,25 +17,35 @@ app.use(express.json());
 // 👉 Sert les fichiers du dossier "public"
 app.use(express.static(path.join(__dirname, "public")));
 
-// --- Fonctions utilitaires pour la base de données ---
-function readDatabase(filePath) {
+// --- Fonctions utilitaires pour la base de données (asynchrones) ---
+async function readDatabase(filePath) {
   try {
-    if (fs.existsSync(filePath)) {
-      const fileContent = fs.readFileSync(filePath, 'utf-8');
-      // Si le fichier est vide, retourne un tableau vide pour éviter une erreur de parsing
-      return fileContent ? JSON.parse(fileContent) : [];
-    }
-    // Si le fichier n'existe pas, retourne un tableau vide
-    return [];
+    const fileContent = await fs.readFile(filePath, 'utf-8');
+    // Si le fichier est vide, retourne un tableau vide pour éviter une erreur de parsing
+    return fileContent ? JSON.parse(fileContent) : [];
   } catch (error) {
+    // Si le fichier n'existe pas (ENOENT), c'est normal, on retourne un tableau vide.
+    if (error.code === 'ENOENT') {
+      return [];
+    }
+    // Pour les autres erreurs (parsing, permissions, etc.), on logue et on retourne un tableau vide.
     console.error(`Erreur de lecture ou de parsing de ${filePath}:`, error);
     return []; // Retourne un tableau vide en cas d'erreur
   }
 }
 
+async function writeDatabase(filePath, data) {
+  try {
+    await fs.writeFile(filePath, JSON.stringify(data, null, 2), 'utf-8');
+  } catch (error) {
+    console.error(`Erreur en écrivant dans ${filePath}:`, error);
+    throw error; // Propage l'erreur pour que l'appelant puisse la gérer (ex: envoyer une réponse 500)
+  }
+}
+
 // --- API pour les lots ---
-app.get("/api/lots", (req, res) => {
-  const lots = readDatabase(DB_PATH);
+app.get("/api/lots", async (req, res) => {
+  const lots = await readDatabase(DB_PATH);
   res.json(lots);
 });
 
@@ -49,26 +59,24 @@ app.get('/api/config', (req, res) => {
   res.json({ paypalClientId });
 });
 
-app.post("/api/lots", (req, res) => {
-  const data = JSON.stringify(req.body, null, 2);
-  fs.writeFile(DB_PATH, data, (err) => {
-    if (err) {
-      console.error("Erreur en écrivant lots.json :", err);
-      return res.status(500).json({ message: "Erreur serveur" });
-    }
+app.post("/api/lots", async (req, res) => {
+  try {
+    await writeDatabase(DB_PATH, req.body);
     res.json({ message: "Lots sauvegardés avec succès." });
-  });
+  } catch (err) {
+    res.status(500).json({ message: "Erreur serveur lors de la sauvegarde des lots." });
+  }
 });
 
 // --- API pour les participants (protégée par mot de passe) ---
-app.post('/api/participants', (req, res) => {
+app.post('/api/participants', async (req, res) => {
   const { password } = req.body;
 
   if (password !== ADMIN_PASSWORD) {
     return res.status(403).json({ error: "Accès non autorisé." });
   }
 
-  const tickets = readDatabase(TICKETS_DB_PATH);
+  const tickets = await readDatabase(TICKETS_DB_PATH);
   res.json(tickets);
 });
 
@@ -83,7 +91,7 @@ app.post('/api/paypal/create-order', async (req, res) => {
     }
 
     try {
-        const dbData = readDatabase(DB_PATH);
+        const dbData = await readDatabase(DB_PATH);
         const lot = dbData.find(l => l.id === lotId);
 
         if (!lot) {
@@ -115,8 +123,16 @@ app.post('/api/paypal/create-order', async (req, res) => {
         res.status(201).json({ id: order.result.id });
 
     } catch (err) {
-        console.error("Erreur lors de la création de la commande PayPal:", err);
-        res.status(500).json({ error: "Impossible de créer la commande PayPal." });
+        const errorMessage = "Impossible de créer la commande PayPal.";
+        console.error(`[PayPal Create Order Error] ${errorMessage}`, err);
+        // L'erreur du SDK PayPal (HttpError) contient des informations utiles pour le débogage
+        if (err.statusCode) {
+            console.error(`[PayPal Error Details] Status: ${err.statusCode}, Message: ${err.message}`);
+            if (err.result) {
+                console.error(JSON.stringify(err.result, null, 2));
+            }
+        }
+        res.status(500).json({ error: errorMessage });
     }
 });
 
@@ -155,16 +171,24 @@ app.post('/api/paypal/capture-order', async (req, res) => {
             }
         };
 
-        const tickets = readDatabase(TICKETS_DB_PATH);
+        const tickets = await readDatabase(TICKETS_DB_PATH);
         tickets.push(newTicket);
-        fs.writeFileSync(TICKETS_DB_PATH, JSON.stringify(tickets, null, 2));
+        await writeDatabase(TICKETS_DB_PATH, tickets);
+
         console.log(`✅ Ticket enregistré pour le lot ${lotId}. Payé par ${payerInfo.email_address}.`);
 
         res.status(200).json(captureDetails);
 
     } catch (err) {
-        console.error("Erreur lors de la capture de la commande PayPal:", err);
-        res.status(500).json({ error: "Impossible de finaliser le paiement." });
+        const errorMessage = "Impossible de finaliser le paiement.";
+        console.error(`[PayPal Capture Order Error] ${errorMessage}`, err);
+        if (err.statusCode) {
+            console.error(`[PayPal Error Details] Status: ${err.statusCode}, Message: ${err.message}`);
+            if (err.result) {
+                console.error(JSON.stringify(err.result, null, 2));
+            }
+        }
+        res.status(500).json({ error: errorMessage });
     }
 });
 
