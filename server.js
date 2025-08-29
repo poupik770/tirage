@@ -9,6 +9,7 @@ const paypal = require('@paypal/checkout-server-sdk');
 const app = express();
 const DB_PATH = path.join(__dirname, "public", "lots.json");
 const TICKETS_DB_PATH = path.join(__dirname, "tickets.json");
+const ADMIN_PASSWORD = "levy770"; // Mot de passe admin
 
 app.use(cors());
 app.use(express.json());
@@ -38,6 +39,16 @@ app.get("/api/lots", (req, res) => {
   res.json(lots);
 });
 
+// --- API pour la configuration ---
+app.get('/api/config', (req, res) => {
+  // Fournit l'ID client PayPal au frontend, en utilisant la clé LIVE en production
+  const paypalClientId = process.env.NODE_ENV === 'production'
+    ? process.env.PAYPAL_CLIENT_ID
+    : 'AShh7OQ-AT9vhcs6c0jWcQ-QWuuiGMi2_0XvYljd_PIT5c9ll-qyBSntgaMYOUdXvCQ-Ag63Yvuhdpbs'; // ID Sandbox pour le test
+
+  res.json({ paypalClientId });
+});
+
 app.post("/api/lots", (req, res) => {
   const data = JSON.stringify(req.body, null, 2);
   fs.writeFile(DB_PATH, data, (err) => {
@@ -47,6 +58,18 @@ app.post("/api/lots", (req, res) => {
     }
     res.json({ message: "Lots sauvegardés avec succès." });
   });
+});
+
+// --- API pour les participants (protégée par mot de passe) ---
+app.post('/api/participants', (req, res) => {
+  const { password } = req.body;
+
+  if (password !== ADMIN_PASSWORD) {
+    return res.status(403).json({ error: "Accès non autorisé." });
+  }
+
+  const tickets = readDatabase(TICKETS_DB_PATH);
+  res.json(tickets);
 });
 
 // --- API pour PayPal ---
