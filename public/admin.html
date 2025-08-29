@@ -42,8 +42,7 @@
 
     <h2>Lots actuels</h2>
     <div id="listeLots"></div>
-    <button onclick="sauvegarderLots()">💾 Sauvegarder</button>
-    <p id="sauvegardeStatus" style="color: green;"></p>
+    <p id="sauvegardeStatus" style="color: green; text-align: center; height: 20px;"></p>
   </div>
 
   <script>
@@ -72,21 +71,6 @@
       try {
         const res = await fetch(`${BACKEND_URL}/api/lots`);
         lots = await res.json();
-
-        // Vérification et correction automatique des lots sans ID
-        const lotsSansId = lots.filter(lot => !lot.id);
-        if (lotsSansId.length > 0) {
-          console.log(`Détection de ${lotsSansId.length} lot(s) sans ID. Correction en cours...`);
-          lots.forEach(lot => {
-            if (!lot.id) {
-              lot.id = 'lot_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-            }
-          });
-
-          // Sauvegarde automatique des corrections
-          await sauvegarderLots();
-          document.getElementById('sauvegardeStatus').textContent = '✅ Correction : Des IDs manquants ont été ajoutés et sauvegardés.';
-        }
 
         afficherLots();
       } catch (err) {
@@ -121,7 +105,7 @@
       }
 
       afficherLots();
-      sauvegarderLots(); // Sauvegarde automatique
+      sauvegarderLots(); // Sauvegarde automatique après ajout/modif
       document.getElementById("lotNom").value = "";
       document.getElementById("lotImage").value = "";
       document.getElementById("lotPrix").value = "";
@@ -171,10 +155,13 @@
     function supprimerLot(index) {
       lots.splice(index, 1);
       afficherLots();
-      sauvegarderLots(); // Sauvegarde automatique
+      sauvegarderLots(); // Sauvegarde automatique après suppression
     }
 
     async function sauvegarderLots() {
+      const status = document.getElementById('sauvegardeStatus');
+      status.textContent = '💾 Sauvegarde en cours...';
+
       try {
         const res = await fetch(`${BACKEND_URL}/api/lots`, {
           method: "POST",
@@ -188,13 +175,12 @@
           }))
         });
         const json = await res.json();
-        const status = document.getElementById('sauvegardeStatus');
         status.textContent = '✅ ' + json.message;
-        // Faire disparaître le message après quelques secondes
+        // Efface le message après 3 secondes pour ne pas encombrer l'interface
         setTimeout(() => { status.textContent = ''; }, 3000);
       } catch (err) {
-        const status = document.getElementById('sauvegardeStatus');
         status.textContent = '❌ Erreur lors de la sauvegarde';
+        console.error("Erreur de sauvegarde:", err);
       }
     }
 
