@@ -1,0 +1,7 @@
+# Fichier pour ignorer les dépendances et les variables d'environnement
+
+# Dépendances Node.js
+node_modules/
+
+# Fichier d'environnement contenant les clés secrètes
+.env

@@ -9,9 +9,5 @@ const environment = process.env.PAYPAL_ENVIRONMENT === 'live'
 // 2. Créer le client PayPal avec le bon environnement
 const client = new paypal.core.PayPalHttpClient(environment);
 
-// 3. Exporter une fonction qui retourne le client configuré
-function getClient() {
-    return client;
-}
-
-module.exports = { client: getClient };
+// 3. Exporter directement l'instance du client
+module.exports = { client };
