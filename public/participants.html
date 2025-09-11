@@ -40,20 +40,30 @@
 
   <script>
     const BACKEND_URL = window.location.hostname === "localhost" ? "http://localhost:3000" : "https://tirage-tvdv.onrender.com";
-    const password = "levy770"; // Le même mot de passe que pour l'autre page admin
 
-    function login() {
+    async function login() {
       const passInput = document.getElementById("adminPass").value;
-      if (passInput === password) {
+      const loginError = document.getElementById("loginError");
+      loginError.style.display = "none";
+
+      try {
+        const response = await fetch(`${BACKEND_URL}/api/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password: passInput })
+        });
+
+        if (!response.ok) throw new Error('Mot de passe incorrect');
+
         document.getElementById("loginSection").style.display = "none";
         document.getElementById("participantsPanel").style.display = "block";
-        chargerDonnees();
-      } else {
-        document.getElementById("loginError").style.display = "block";
+        chargerDonnees(passInput);
+      } catch (error) {
+        loginError.style.display = "block";
       }
     }
 
-    async function chargerDonnees() {
+    async function chargerDonnees(password) {
       try {
         // On a besoin des lots pour afficher leur nom, et des tickets pour les participants
         const [lotsRes, ticketsRes] = await Promise.all([
