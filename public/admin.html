@@ -5,18 +5,71 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Panneau Admin – Gestion des Lots</title>
   <style>
-    body { font-family: Arial, sans-serif; background: #f7f7f7; padding: 2rem; margin: 0; }
-    h1, h2 { text-align: center; color: #333; }
-    .login, .admin-panel { max-width: 600px; margin: 2rem auto; background: white; padding: 2rem;
-                           box-shadow: 0 0 10px rgba(0,0,0,0.1); border-radius: 8px; }
-    input, button { width: 100%; padding: 0.8rem; margin: 0.5rem 0; border-radius: 5px; border: 1px solid #ccc; }
-    button { background: #28a745; color: white; border: none; cursor: pointer; font-size: 1rem; }
-    button:hover { background: #218838; }
-    .lot-item { border: 1px solid #ccc; border-radius: 5px; padding: 1rem; margin-bottom: 1rem; background: #f9f9f9; }
-    .modif { background: #ffc107; color: black; }
-    .modif:hover { background: #e0a800; }
-    .delete { background: #dc3545; }
-    .delete:hover { background: #b02a37; }
+    body {
+      font-family: Arial, sans-serif;
+      background: #f7f7f7;
+      padding: 2rem;
+      margin: 0;
+    }
+    h1, h2 {
+      text-align: center;
+      color: #333;
+    }
+    .login, .admin-panel {
+      max-width: 600px;
+      margin: 2rem auto;
+      background: white;
+      padding: 2rem;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      border-radius: 8px;
+    }
+    input, button {
+      width: 100%;
+      padding: 0.8rem;
+      margin: 0.5rem 0;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+    button {
+      background: #28a745;
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-size: 1rem;
+    }
+    button:hover {
+      background: #218838;
+    }
+    .lot-item {
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      background: #f9f9f9;
+    }
+    .modif {
+      background: #ffc107;
+      color: black;
+    }
+    .modif:hover {
+      background: #e0a800;
+    }
+    .delete {
+      background: #dc3545;
+    }
+    .delete:hover {
+      background: #b02a37;
+    }
+    #loginError {
+      color: red;
+      display: none;
+      text-align: center;
+    }
+    #sauvegardeStatus {
+      color: green;
+      text-align: center;
+      height: 20px;
+    }
   </style>
 </head>
 <body>
@@ -25,186 +78,181 @@
   <div class="login" id="loginSection">
     <h1>🔐 Connexion Admin</h1>
     <input type="password" id="adminPass" placeholder="Mot de passe admin">
-    <button onclick="login()">Connexion</button>
-    <p id="loginError" style="color: red; display: none;">Mot de passe incorrect.</p>
+    <button id="loginBtn">Connexion</button>
+    <p id="loginError">Mot de passe incorrect.</p>
   </div>
 
   <!-- Panneau Admin -->
   <div class="admin-panel" id="adminPanel" style="display: none;">
     <h1>🎛️ Gestion des lots</h1>
+
     <input type="text" id="lotNom" placeholder="Nom du lot">
     <input type="text" id="lotImage" placeholder="URL de l'image">
     <input type="number" id="lotPrix" placeholder="Prix du ticket (€)">
     <input type="number" id="lotTotalTickets" placeholder="Nombre total de tickets">
     <input type="datetime-local" id="lotDate" placeholder="Date du tirage">
-    <button onclick="ajouterOuModifierLot()" id="ajoutBtn">Ajouter le lot</button>
-    <a href="participants.html" target="_blank" style="display: block; text-align: center; margin-top: 1rem; font-size: 1.1rem;">Voir la liste des participants</a>
+    <button id="addBtn">Ajouter le lot</button>
+    <a href="participants.html" target="_blank" style="display: block; text-align: center; margin-top: 1rem;">
+      Voir la liste des participants
+    </a>
 
     <h2>Lots actuels</h2>
     <div id="listeLots"></div>
-    <p id="sauvegardeStatus" style="color: green; text-align: center; height: 20px;"></p>
+    <p id="sauvegardeStatus"></p>
   </div>
 
   <script>
-    // URL backend auto
-    const BACKEND_URL =
-      window.location.hostname === "localhost"
-        ? "http://localhost:3000"
-        : "https://tirage-tvdv.onrender.com";
+    // Détermination de l'URL de l'API
+    const BACKEND_URL = window.location.hostname === "localhost"
+      ? "http://localhost:3000"
+      : "https://tirage-tvdv.onrender.com";
+
+    console.log("BACKEND_URL =", BACKEND_URL);
 
     let lots = [];
-    let indexEnModification = null;
-    let sessionPassword = null; // Pour stocker le mot de passe après connexion
+    let indexEnModif = null;
+    let sessionPassword = null;
+
+    document.addEventListener("DOMContentLoaded", () => {
+      document.getElementById("loginBtn").addEventListener("click", login);
+      document.getElementById("addBtn").addEventListener("click", ajouterOuModifierLot);
+    });
 
     async function login() {
-      const passInput = document.getElementById("adminPass").value;
-      const loginError = document.getElementById("loginError");
-      loginError.style.display = "none";
+      const pass = document.getElementById("adminPass").value;
+      const errorP = document.getElementById("loginError");
+      errorP.style.display = "none";
+      console.log("Tentative de login avec:", pass);
 
       try {
-        const response = await fetch(`${BACKEND_URL}/api/login`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ password: passInput })
+        const res = await fetch(`${BACKEND_URL}/api/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ password: pass })
         });
+        console.log("Réponse login status:", res.status);
 
-        if (!response.ok) throw new Error('Mot de passe incorrect');
+        if (!res.ok) throw new Error("Login failed");
 
-        sessionPassword = passInput; // On garde le mot de passe pour les actions futures
+        sessionPassword = pass;
         document.getElementById("loginSection").style.display = "none";
         document.getElementById("adminPanel").style.display = "block";
         chargerLots();
-      } catch (error) {
-        loginError.style.display = "block";
-    
+      } catch (err) {
+        console.error("Erreur login:", err);
+        errorP.style.display = "block";
+      }
     }
 
     async function chargerLots() {
+      console.log("Chargement des lots...");
       try {
         const res = await fetch(`${BACKEND_URL}/api/lots`);
         lots = await res.json();
-
+        console.log("Lots reçus:", lots);
         afficherLots();
       } catch (err) {
-        console.error("Erreur de chargement ou de correction des lots:", err);
+        console.error("Erreur lors du chargement des lots:", err);
       }
-    }
-
-    function ajouterOuModifierLot() {
-      const nom = document.getElementById("lotNom").value;
-      const image = document.getElementById("lotImage").value;
-      const prix = document.getElementById("lotPrix").value;
-      const totalTickets = document.getElementById("lotTotalTickets").value;
-      const date = document.getElementById("lotDate").value;
-
-      if (!nom || !image || !prix || !date || !totalTickets) {
-        alert("⚠️ Remplis tous les champs !");
-        return;
-      }
-
-      const lotData = { nom, image, prix, date, totalTickets: parseInt(totalTickets, 10) };
-      
-      if (indexEnModification !== null) {
-        // On préserve l'ID existant pour ne pas le perdre lors de la modification
-        lotData.id = lots[indexEnModification].id;
-        lots[indexEnModification] = lotData;
-        indexEnModification = null;
-        document.getElementById("ajoutBtn").textContent = "Ajouter le lot";
-      } else {
-        // Pour un nouveau lot, on assigne un ID unique immédiatement
-        lotData.id = 'lot_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-        lots.push(lotData);
-      }
-
-      afficherLots();
-      sauvegarderLots(); // Sauvegarde automatique après ajout/modif
-      document.getElementById("lotNom").value = "";
-      document.getElementById("lotImage").value = "";
-      document.getElementById("lotPrix").value = "";
-      document.getElementById("lotDate").value = "";
-      document.getElementById("lotTotalTickets").value = "";
-    }
-
-    function modifierLot(id) {
-      const index = lots.findIndex(l => l.id === id);
-      if (index === -1) return; // Sécurité: ne rien faire si le lot n'est pas trouvé
-
-      const lot = lots[index];
-      document.getElementById("lotNom").value = lot.nom;
-      document.getElementById("lotImage").value = lot.image;
-      document.getElementById("lotPrix").value = lot.prix;
-      document.getElementById("lotTotalTickets").value = lot.totalTickets || '';
-      document.getElementById("lotDate").value = lot.date;
-      indexEnModification = index;
-      document.getElementById("ajoutBtn").textContent = "Modifier le lot";
     }
 
     function afficherLots() {
-      const liste = document.getElementById("listeLots");
-      liste.innerHTML = "";
-      lots.forEach((lot, index) => {
+      const container = document.getElementById("listeLots");
+      container.innerHTML = "";
+      lots.forEach(lot => {
         const div = document.createElement("div");
         div.className = "lot-item";
         div.innerHTML = `
           <strong>${lot.nom}</strong><br>
-          <img src="${lot.image}" alt="${lot.nom}" style="width: 100%; max-height: 200px; object-fit: cover;"><br>
+          <img src="${lot.image}" alt="${lot.nom}" style="width:100%;max-height:200px;object-fit:cover;"><br>
           🎟️ ${lot.prix} €<br>
-          🎫 Total Tickets: ${lot.totalTickets || 'N/A'}<br>
+          🎫 Total Tickets: ${lot.totalTickets}<br>
           📅 Tirage: ${lot.date}<br>
-          <button onclick="modifierLot('${lot.id}')" class="modif">Modifier</button>
-          <button onclick="supprimerLot('${lot.id}')" class="delete">Supprimer</button>
+          <button class="modif">Modifier</button>
+          <button class="delete">Supprimer</button>
         `;
-        liste.appendChild(div);
+        // Events modifier / supprimer
+        div.querySelector(".modif").addEventListener("click", () => startModifLot(lot.id));
+        div.querySelector(".delete").addEventListener("click", () => supprimerLot(lot.id));
+        container.appendChild(div);
       });
     }
 
-    function supprimerLot(id) {
-      const index = lots.findIndex(l => l.id === id);
-      if (index === -1) return; // Sécurité
+    function startModifLot(id) {
+      indexEnModif = lots.findIndex(l => l.id === id);
+      const lot = lots[indexEnModif];
+      document.getElementById("lotNom").value = lot.nom;
+      document.getElementById("lotImage").value = lot.image;
+      document.getElementById("lotPrix").value = lot.prix;
+      document.getElementById("lotTotalTickets").value = lot.totalTickets;
+      document.getElementById("lotDate").value = lot.date;
+      document.getElementById("addBtn").textContent = "Modifier le lot";
+    }
 
-      lots.splice(index, 1);
+    function supprimerLot(id) {
+      lots = lots.filter(l => l.id !== id);
       afficherLots();
-      sauvegarderLots(); // Sauvegarde automatique après suppression
+      sauvegarderLots();
+    }
+
+    async function ajouterOuModifierLot() {
+      const nom = document.getElementById("lotNom").value.trim();
+      const image = document.getElementById("lotImage").value.trim();
+      const prix = document.getElementById("lotPrix").value;
+      const total = document.getElementById("lotTotalTickets").value;
+      const date = document.getElementById("lotDate").value;
+
+      if (!nom || !image || !prix || !total || !date) {
+        alert("⚠️ Tous les champs sont requis !");
+        return;
+      }
+
+      const lotData = {
+        nom,
+        image,
+        prix,
+        totalTickets: parseInt(total, 10),
+        date
+      };
+
+      if (indexEnModif !== null) {
+        lotData.id = lots[indexEnModif].id;
+        lots[indexEnModif] = lotData;
+        indexEnModif = null;
+        document.getElementById("addBtn").textContent = "Ajouter le lot";
+      } else {
+        lotData.id = `lot_${Date.now()}_${Math.random().toString(36).substr(2,9)}`;
+        lots.push(lotData);
+      }
+
+      afficherLots();
+      await sauvegarderLots();
+
+      // reset form
+      ["lotNom","lotImage","lotPrix","lotTotalTickets","lotDate"].forEach(id=> {
+        document.getElementById(id).value = "";
+      });
     }
 
     async function sauvegarderLots() {
-      const status = document.getElementById('sauvegardeStatus');
-      status.textContent = '💾 Sauvegarde en cours...';
-
-      if (!sessionPassword) {
-        status.textContent = '❌ Erreur : session invalide. Veuillez vous reconnecter.';
-        return;
-      }
+      const statusP = document.getElementById("sauvegardeStatus");
+      statusP.textContent = "💾 Sauvegarde en cours...";
+      console.log("Envoi lots au serveur:", lots);
 
       try {
         const res = await fetch(`${BACKEND_URL}/api/lots`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            password: sessionPassword, // On envoie le mot de passe pour l'authentification
-            lots: lots.map(lot => {
-              if (!lot.id || lot.id.startsWith('temp_')) {
-                lot.id = 'lot_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-              }
-              return lot;
-            })
-          })
+          body: JSON.stringify(lots)
         });
-
-        if (!res.ok) {
-          const errorData = await res.json().catch(() => ({ message: 'Accès non autorisé ou erreur serveur.' }));
-          throw new Error(errorData.message);
-        }
-
-        const json = await res.json();
-        status.textContent = '✅ ' + json.message;
-        setTimeout(() => { status.textContent = ''; }, 3000);
+        if (!res.ok) throw new Error("Erreur sauvegarde");
+        statusP.textContent = "✅ Lots sauvegardés";
+        setTimeout(() => { statusP.textContent = ""; }, 3000);
       } catch (err) {
-        status.textContent = `❌ ${err.message || 'Erreur lors de la sauvegarde'}`;
-        console.error("Erreur de sauvegarde:", err);
+        console.error("Erreur sauvegarde:", err);
+        statusP.textContent = "❌ Échec de la sauvegarde";
       }
     }
-
   </script>
 </body>
 </html>
