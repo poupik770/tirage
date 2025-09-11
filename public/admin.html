@@ -54,6 +54,7 @@
 
     let lots = [];
     let indexEnModification = null;
+    let sessionPassword = null; // Pour stocker le mot de passe après connexion
 
     async function login() {
       const passInput = document.getElementById("adminPass").value;
@@ -69,12 +70,13 @@
 
         if (!response.ok) throw new Error('Mot de passe incorrect');
 
+        sessionPassword = passInput; // On garde le mot de passe pour les actions futures
         document.getElementById("loginSection").style.display = "none";
         document.getElementById("adminPanel").style.display = "block";
         chargerLots();
       } catch (error) {
         loginError.style.display = "block";
-      }
+    
     }
 
     async function chargerLots() {
@@ -169,24 +171,36 @@
       const status = document.getElementById('sauvegardeStatus');
       status.textContent = '💾 Sauvegarde en cours...';
 
+      if (!sessionPassword) {
+        status.textContent = '❌ Erreur : session invalide. Veuillez vous reconnecter.';
+        return;
+      }
+
       try {
         const res = await fetch(`${BACKEND_URL}/api/lots`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          // On s'assure que chaque lot a un ID permanent avant de sauvegarder
-          body: JSON.stringify(lots.map(lot => {
-            if (!lot.id || lot.id.startsWith('temp_')) {
-              lot.id = 'lot_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-            }
-            return lot;
-          }))
+          body: JSON.stringify({
+            password: sessionPassword, // On envoie le mot de passe pour l'authentification
+            lots: lots.map(lot => {
+              if (!lot.id || lot.id.startsWith('temp_')) {
+                lot.id = 'lot_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+              }
+              return lot;
+            })
+          })
         });
+
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({ message: 'Accès non autorisé ou erreur serveur.' }));
+          throw new Error(errorData.message);
+        }
+
         const json = await res.json();
         status.textContent = '✅ ' + json.message;
-        // Efface le message après 3 secondes pour ne pas encombrer l'interface
         setTimeout(() => { status.textContent = ''; }, 3000);
       } catch (err) {
-        status.textContent = '❌ Erreur lors de la sauvegarde';
+        status.textContent = `❌ ${err.message || 'Erreur lors de la sauvegarde'}`;
         console.error("Erreur de sauvegarde:", err);
       }
     }
