@@ -189,10 +189,11 @@
       document.getElementById("addBtn").textContent = "Modifier le lot";
     }
 
-    function supprimerLot(id) {
+    async function supprimerLot(id) {
+      if (!confirm("Êtes-vous sûr de vouloir supprimer ce lot ? Cette action est irréversible.")) return;
       lots = lots.filter(l => l.id !== id);
       afficherLots();
-      sauvegarderLots();
+      await sauvegarderLots();
     }
 
     async function ajouterOuModifierLot() {
@@ -235,6 +236,11 @@
     }
 
     async function sauvegarderLots() {
+      if (!sessionPassword) {
+        alert("Session expirée. Veuillez vous reconnecter pour sauvegarder les modifications.");
+        return;
+      }
+
       const statusP = document.getElementById("sauvegardeStatus");
       statusP.textContent = "💾 Sauvegarde en cours...";
       console.log("Envoi lots au serveur:", lots);
@@ -243,14 +249,18 @@
         const res = await fetch(`${BACKEND_URL}/api/lots`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(lots)
+          // On envoie le mot de passe pour l'authentification côté backend
+          body: JSON.stringify({ lots: lots, password: sessionPassword })
         });
-        if (!res.ok) throw new Error("Erreur sauvegarde");
+        if (!res.ok) {
+          const errorBody = await res.json().catch(() => ({ message: "Réponse invalide du serveur" }));
+          throw new Error(errorBody.message || "Erreur lors de la sauvegarde");
+        }
         statusP.textContent = "✅ Lots sauvegardés";
         setTimeout(() => { statusP.textContent = ""; }, 3000);
       } catch (err) {
         console.error("Erreur sauvegarde:", err);
-        statusP.textContent = "❌ Échec de la sauvegarde";
+        statusP.textContent = `❌ Échec de la sauvegarde: ${err.message}`;
       }
     }
   </script>
