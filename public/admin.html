@@ -86,6 +86,7 @@
   <div class="admin-panel" id="adminPanel" style="display: none;">
     <h1>🎛️ Gestion des lots</h1>
 
+    <input type="hidden" id="lotId"> <!-- Champ caché pour stocker l'ID en cours de modification -->
     <input type="text" id="lotNom" placeholder="Nom du lot">
     <input type="text" id="lotImage" placeholder="URL de l'image">
     <input type="number" id="lotPrix" placeholder="Prix du ticket (€)">
@@ -110,7 +111,6 @@
     console.log("BACKEND_URL =", BACKEND_URL);
 
     let lots = [];
-    let indexEnModif = null;
     let sessionPassword = null;
 
     document.addEventListener("DOMContentLoaded", () => {
@@ -188,8 +188,9 @@
     }
 
     function startModifLot(id) {
-      indexEnModif = lots.findIndex(l => l.id === id);
-      const lot = lots[indexEnModif];
+      const lot = lots.find(l => l.id === id);
+      if (!lot) return;
+      document.getElementById("lotId").value = lot.id; // On stocke l'ID dans le champ caché
       document.getElementById("lotNom").value = lot.nom;
       document.getElementById("lotImage").value = lot.image;
       document.getElementById("lotPrix").value = lot.prix;
@@ -206,6 +207,7 @@
     }
 
     async function ajouterOuModifierLot() {
+      const idEnModif = document.getElementById("lotId").value;
       const nom = document.getElementById("lotNom").value.trim();
       const image = document.getElementById("lotImage").value.trim();
       const prixValue = document.getElementById("lotPrix").value;
@@ -232,10 +234,10 @@
         date
       };
 
-      if (indexEnModif !== null) {
-        lotData.id = lots[indexEnModif].id;
-        lots[indexEnModif] = lotData;
-        indexEnModif = null;
+      if (idEnModif) {
+        lotData.id = idEnModif;
+        const index = lots.findIndex(l => l.id === idEnModif);
+        if (index !== -1) lots[index] = lotData;
         document.getElementById("addBtn").textContent = "Ajouter le lot";
       } else {
         lotData.id = `lot_${Date.now()}_${Math.random().toString(36).substr(2,9)}`;
@@ -246,7 +248,7 @@
       await sauvegarderLots();
 
       // reset form
-      ["lotNom","lotImage","lotPrix","lotTotalTickets","lotDate"].forEach(id=> {
+      ["lotId", "lotNom","lotImage","lotPrix","lotTotalTickets","lotDate"].forEach(id=> {
         document.getElementById(id).value = "";
       });
     }
