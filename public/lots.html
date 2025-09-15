@@ -240,7 +240,7 @@
           return fetch(`${BACKEND_URL}/api/paypal/capture-order`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ orderID: data.orderID })
+            body: JSON.stringify({ orderID: data.orderID, lotId: lot.id })
           }).then(res => {
             if (!res.ok) {
               // Si le serveur renvoie une erreur, on la propage pour qu'elle soit attrapée par onError
