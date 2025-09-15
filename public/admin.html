@@ -208,12 +208,19 @@
     async function ajouterOuModifierLot() {
       const nom = document.getElementById("lotNom").value.trim();
       const image = document.getElementById("lotImage").value.trim();
-      const prix = document.getElementById("lotPrix").value;
+      const prixValue = document.getElementById("lotPrix").value;
       const total = document.getElementById("lotTotalTickets").value;
       const date = document.getElementById("lotDate").value;
 
-      if (!nom || !image || !prix || !total || !date) {
+      if (!nom || !image || !prixValue || !total || !date) {
         alert("⚠️ Tous les champs sont requis !");
+        return;
+      }
+
+      // Valider et formater le prix pour s'assurer qu'il est compatible avec PayPal (ex: "10.50")
+      const prix = parseFloat(prixValue.replace(',', '.')).toFixed(2);
+      if (isNaN(prix) || prix <= 0) {
+        alert("⚠️ Le prix est invalide. Veuillez entrer un nombre positif (ex: 10.50).");
         return;
       }
 
