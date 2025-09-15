@@ -224,8 +224,17 @@
             body: JSON.stringify({ lotId: lot.id }) // Envoi de l'ID du lot au backend
           }).then(res => {
             if (!res.ok) {
-              // Si le serveur renvoie une erreur, on la propage pour l'afficher
-              return res.json().then(err => { throw new Error(err.error || 'Erreur du serveur lors de la création de la commande.') });
+              // Gestion d'erreur améliorée pour mieux diagnostiquer les problèmes serveur
+              return res.text().then(text => {
+                try {
+                  const err = JSON.parse(text);
+                  throw new Error(err.error || err.message || 'Erreur du serveur lors de la création de la commande.');
+                } catch (e) {
+                  // La réponse n'est pas du JSON, c'est probablement une page d'erreur HTML du serveur
+                  console.error("Réponse inattendue du serveur (non-JSON) :", text);
+                  throw new Error('Le serveur a rencontré une erreur interne. Veuillez vérifier les logs du serveur.');
+                }
+              });
             }
             return res.json();
           }).then(order => {

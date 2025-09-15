@@ -150,19 +150,29 @@
       <h2>Ne manquez aucun lot !</h2>
       <p>Inscrivez-vous pour être notifié(e) dès que de nouveaux tirages sont disponibles.</p>
       <form class="newsletter-form" onsubmit="handleSubscription(event)">
-        <input type="email" placeholder="Votre adresse email" required>
+        <input type="email" id="newsletter-email" placeholder="Votre adresse email" required>
         <button type="submit">M'inscrire</button>
       </form>
+      <p id="subscription-status" style="margin-top: 1rem; color: green;"></p>
     </section>
   </div>
 
   <script>
     function handleSubscription(event) {
       event.preventDefault(); // Empêche le rechargement de la page
-      const emailInput = event.target.querySelector('input[type="email"]');
+      const emailInput = document.getElementById('newsletter-email');
+      const statusP = document.getElementById('subscription-status');
+      const email = emailInput.value;
+
       // Ici, vous pourriez envoyer l'email à votre backend pour l'enregistrer
-      alert(`Merci ! L'adresse ${emailInput.value} a bien été enregistrée. Vous serez notifié(e) des prochains lots.`);
+      console.log(`Inscription à la newsletter pour : ${email}`);
+
+      statusP.textContent = `Merci ! L'adresse ${email} a bien été enregistrée.`;
+      statusP.style.color = 'green';
+
       emailInput.value = ''; // Vide le champ
+
+      setTimeout(() => { statusP.textContent = ''; }, 5000);
     }
   </script>
 </body>
