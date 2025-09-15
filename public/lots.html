@@ -238,8 +238,14 @@
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ orderID: data.orderID })
-          }).then(res => res.json()).then(details => {
-            alert(`Paiement réussi ! Merci pour votre participation.`);
+          }).then(res => {
+            if (!res.ok) {
+              // Si le serveur renvoie une erreur, on la propage pour qu'elle soit attrapée par onError
+              return res.json().then(err => { throw new Error(err.error || 'La validation du paiement a échoué côté serveur.') });
+            }
+            return res.json();
+          }).then(details => {
+            alert(`Paiement réussi ! Merci pour votre participation !`);
             chargerLots(); // Rafraîchir la liste des lots
           });
         },
