@@ -266,9 +266,13 @@
       try {
         const res = await fetch(`${BACKEND_URL}/api/lots`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          // On envoie le mot de passe pour l'authentification côté backend
-          body: JSON.stringify({ lots: lots, password: sessionPassword })
+          headers: {
+            "Content-Type": "application/json",
+            // On envoie le mot de passe dans un en-tête pour ne pas polluer le corps de la requête
+            "X-Admin-Password": sessionPassword
+          },
+          // Le corps ne contient plus que le tableau des lots, ce qui garantit un format propre en BDD
+          body: JSON.stringify(lots)
         });
         if (!res.ok) {
           const errorBody = await res.json().catch(() => ({ message: "Réponse invalide du serveur" }));
