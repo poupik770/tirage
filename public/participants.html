@@ -79,11 +79,14 @@
           throw new Error("Accès non autorisé ou erreur serveur pour récupérer les participants.");
         }
 
-        const lots = await lotsRes.json();
+        let lots = [];
+        if (lotsRes.ok) {
+          const data = await lotsRes.json();
+          // Gère le cas où le backend renvoie {lots: [...]} au lieu de [...]
+          lots = Array.isArray(data) ? data : data.lots || [];
+        }
         const tickets = await ticketsRes.json();
-
         afficherParticipants(tickets, lots);
-
       } catch (err) {
         console.error("Erreur de chargement des données:", err);
         document.getElementById('participantsList').innerHTML = `<p style="color: red;">${err.message}</p>`;

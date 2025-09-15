@@ -166,7 +166,10 @@
     async function chargerLots() {
       try {
         const res = await fetch(`${BACKEND_URL}/api/lots`);
-        const lots = await res.json();
+        if (!res.ok) throw new Error(`Le serveur a répondu avec le statut ${res.status}`);
+        const data = await res.json();
+        // Le backend renvoie parfois un objet {lots: [...]}. On s'assure de ne récupérer que le tableau.
+        const lots = Array.isArray(data) ? data : data.lots || [];
         afficherLots(lots);
       } catch (err) {
         console.error("Erreur de chargement des lots:", err);
