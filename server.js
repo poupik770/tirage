@@ -54,7 +54,17 @@ app.get("/api/lots", async (req, res) => {
 });
 
 app.post("/api/lots", async (req, res) => {
+  // Sécurité : Vérifier le mot de passe admin envoyé dans les en-têtes
+  const password = req.headers['x-admin-password'];
+  if (password !== ADMIN_PASSWORD) {
+    return res.status(401).json({ message: "Authentification administrateur requise." });
+  }
+
   try {
+    // S'assurer que le corps de la requête est bien un tableau avant de sauvegarder
+    if (!Array.isArray(req.body)) {
+      return res.status(400).json({ message: "Le format des données est incorrect (doit être un tableau)." });
+    }
     await writeDatabase(DB_PATH, req.body);
     res.json({ message: "Lots sauvegardés avec succès." });
   } catch (err) {
@@ -86,7 +96,10 @@ app.post('/api/paypal/create-order', async (req, res) => {
 
   try {
     const dbData = await readDatabase(DB_PATH);
-    const lot = dbData.find(l => l.id === lotId);
+    // Rendre la lecture robuste : Gère le cas où la BDD est un objet {lots: [...]} ou un simple tableau [...]
+    const lots = Array.isArray(dbData) ? dbData : dbData.lots || [];
+    const lot = lots.find(l => l.id === lotId);
+
     if (!lot) return res.status(404).json({ error: "Lot non trouvé." });
 
     const prix = parseFloat(lot.prix);
