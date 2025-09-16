@@ -152,12 +152,21 @@ app.post('/api/paypal/capture-order', async (req, res) => {
       }
     };
 
-    const tickets = await readDatabase(TICKETS_DB_PATH);
-    tickets.push(newTicket);
-    await writeDatabase(TICKETS_DB_PATH, tickets);
-
-    console.log(`✅ Ticket enregistré pour ${lotId}, payé par ${payerInfo.email_address}`);
+    // On considère le paiement comme réussi du point de vue de l'utilisateur.
+    // On essaie d'enregistrer le ticket, mais si ça échoue, on loggue une erreur critique
+    // sans faire échouer la requête pour l'utilisateur qui a déjà payé.
     res.status(200).json(captureDetails);
+
+    try {
+      const tickets = await readDatabase(TICKETS_DB_PATH);
+      tickets.push(newTicket);
+      await writeDatabase(TICKETS_DB_PATH, tickets);
+      console.log(`✅ Ticket enregistré pour ${lotId}, payé par ${payerInfo.email_address}`);
+    } catch (dbError) {
+      console.error("‼️ ERREUR CRITIQUE : Le paiement PayPal a été capturé mais l'enregistrement du ticket a échoué.");
+      console.error("Détails du paiement à enregistrer manuellement:", JSON.stringify(newTicket, null, 2));
+      console.error("Erreur de base de données:", dbError);
+    }
 
   } catch (err) {
     console.error("Erreur capture PayPal:", err);
