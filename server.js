@@ -53,12 +53,25 @@ app.post('/api/login', (req, res) => {
 app.get("/api/lots", async (req, res) => {
   try {
     const lots = await readDatabase(DB_PATH);
-    res.json(lots);
+    const tickets = await readDatabase(TICKETS_DB_PATH);
+
+    const lotsAvecRestants = lots.map(lot => {
+      const vendus = tickets.filter(ticket => ticket.lotId === lot.id).length;
+      const ticketsRestants = lot.totalTickets ? lot.totalTickets - vendus : null;
+
+      return {
+        ...lot,
+        ticketsRestants
+      };
+    });
+
+    res.json({ lots: lotsAvecRestants });
   } catch (err) {
-    // Si la lecture de la BDD échoue, on renvoie une erreur 500
+    console.error("Erreur lors du calcul des tickets restants :", err);
     res.status(500).json({ message: "Erreur serveur lors de la récupération des lots." });
   }
 });
+
 
 app.post("/api/lots", async (req, res) => {
   // Sécurité : Vérifier le mot de passe admin envoyé dans les en-têtes
