@@ -1,13 +1,22 @@
-require('dotenv').config(); // Charge les variables depuis le fichier .env pour le développement local
+require('dotenv').config();
 const paypal = require('@paypal/checkout-server-sdk');
 
-// 1. Déterminer l'environnement (sandbox ou live) en fonction de la variable d'environnement
-const environment = process.env.PAYPAL_ENVIRONMENT === 'live'
-  ? new paypal.core.LiveEnvironment(process.env.PAYPAL_CLIENT_ID, process.env.PAYPAL_CLIENT_SECRET)
-  : new paypal.core.SandboxEnvironment(process.env.PAYPAL_CLIENT_ID, process.env.PAYPAL_CLIENT_SECRET);
+const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 
-// 2. Créer le client PayPal avec le bon environnement
+// Sélectionne les identifiants et l'environnement en fonction du mode
+const clientId = process.env.PAYPAL_CLIENT_ID;
+const clientSecret = process.env.PAYPAL_CLIENT_SECRET;
+
+if (!clientId || !clientSecret) {
+  throw new Error("‼️ LES IDENTIFIANTS PAYPAL (PAYPAL_CLIENT_ID, PAYPAL_CLIENT_SECRET) SONT MANQUANTS DANS LES VARIABLES D'ENVIRONNEMENT.");
+}
+
+const environment = IS_PRODUCTION
+  ? new paypal.core.LiveEnvironment(clientId, clientSecret)
+  : new paypal.core.SandboxEnvironment(clientId, clientSecret);
+
 const client = new paypal.core.PayPalHttpClient(environment);
 
-// 3. Exporter directement l'instance du client
+console.log(`✅ Client PayPal initialisé en mode ${IS_PRODUCTION ? 'LIVE' : 'SANDBOX'}.`);
+
 module.exports = { client };

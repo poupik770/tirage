@@ -12,6 +12,7 @@ const app = express();
 const DB_PATH = path.join(__dirname, "public", "lots.json");
 const TICKETS_DB_PATH = path.join(__dirname, "tickets.json");
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "levy770"; // 🔐 Mot de passe sécurisé
+const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 
 app.use(cors());
 app.use(express.json());
@@ -24,8 +25,9 @@ async function readDatabase(filePath) {
     return fileContent ? JSON.parse(fileContent) : [];
   } catch (error) {
     if (error.code === 'ENOENT') return [];
-    console.error(`Erreur lecture ${filePath}:`, error);
-    return [];
+    // Pour toute autre erreur, on la propage pour que l'appelant la gère
+    console.error(`Erreur de lecture de la base de données ${filePath}:`, error);
+    throw error;
   }
 }
 
@@ -49,8 +51,13 @@ app.post('/api/login', (req, res) => {
 
 // --- API lots ---
 app.get("/api/lots", async (req, res) => {
-  const lots = await readDatabase(DB_PATH);
-  res.json(lots);
+  try {
+    const lots = await readDatabase(DB_PATH);
+    res.json(lots);
+  } catch (err) {
+    // Si la lecture de la BDD échoue, on renvoie une erreur 500
+    res.status(500).json({ message: "Erreur serveur lors de la récupération des lots." });
+  }
 });
 
 app.post("/api/lots", async (req, res) => {
@@ -84,9 +91,14 @@ app.post('/api/participants', async (req, res) => {
 
 // --- API PayPal ---
 app.get('/api/config', (req, res) => {
-  const paypalClientId = process.env.NODE_ENV === 'production'
-    ? process.env.PAYPAL_CLIENT_ID
-    : 'AShh7OQ-AT9vhcs6c0jWcQ-QWuuiGMi2_0XvYljd_PIT5c9ll-qyBSntgaMYOUdXvCQ-Ag63Yvuhdpbs';
+  // Fournit l'ID client au frontend, en choisissant entre live et sandbox
+  const paypalClientId = process.env.PAYPAL_CLIENT_ID;
+
+  if (!paypalClientId) {
+    // L'erreur principale est maintenant gérée dans paypal-client.js, mais une vérification ici reste une bonne pratique.
+    console.error("‼️ L'ID client PayPal (PAYPAL_CLIENT_ID) n'est pas configuré dans les variables d'environnement.");
+    return res.status(500).json({ error: "Configuration de paiement du serveur incomplète." });
+  }
   res.json({ paypalClientId });
 });
 
