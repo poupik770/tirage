@@ -121,14 +121,20 @@ app.post('/api/paypal/capture-order', async (req, res) => {
     return res.status(400).json({ error: "ID de commande ou ID du lot manquant." });
   }
 
-  const request = new paypal.orders.OrdersCaptureRequest(orderID);
+    const request = new paypal.orders.OrdersCaptureRequest(orderID);
   request.requestBody({});
 
   try {
     const capture = await client.execute(request);
     const details = capture.result;
 
-    // --- Enregistrement du ticket si le paiement est complété ---
+    // Vérification de la réponse PayPal
+    if (!details || !details.payer || !details.purchase_units || !details.purchase_units[0]) {
+      console.error("⚠️ Réponse PayPal incomplète :", JSON.stringify(details, null, 2));
+      return res.status(500).json({ error: "Réponse inattendue de PayPal. Paiement non capturé." });
+    }
+
+    // Enregistrement du ticket si le paiement est complété
     if (details.status === 'COMPLETED') {
       const nouveauTicket = {
         ticketId: `ticket_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -153,14 +159,34 @@ app.post('/api/paypal/capture-order', async (req, res) => {
       }
     }
 
-    // --- Réponse au frontend ---
+    // Réponse au frontend
     res.status(200).json(details);
 
-  } catch (error) {
-    console.error("Erreur lors de la capture de la commande :", error);
-    res.status(500).json({ error: "La validation du paiement a échoué." });
+  } catch (err) {
+    console.error("❌ Erreur lors de la capture de la commande PayPal.");
+    console.error("===================================================");
+    console.error(`ID de la commande qui a échoué : ${orderID}`);
+    
+    // Les erreurs de l'API PayPal sont souvent des objets HttpError avec des détails utiles
+    if (err.statusCode) {
+      console.error(`Code de statut HTTP : ${err.statusCode}`);
+      // Le message d'erreur est souvent une chaîne JSON, essayons de la parser.
+      try {
+        const errorDetails = JSON.parse(err.message);
+        console.error("Détails de l'erreur PayPal :", JSON.stringify(errorDetails, null, 2));
+      } catch (e) {
+        // Si ce n'est pas du JSON, on affiche le message brut
+        console.error("Message d'erreur brut :", err.message);
+      }
+    } else {
+      // Pour les erreurs non-HTTP (ex: problème réseau, erreur de programmation)
+      console.error("Erreur non-HTTP ou inattendue :", err);
+    }
+    console.error("===================================================");
+    res.status(500).json({ error: "La validation du paiement a échoué. Veuillez vérifier les logs du serveur." });
   }
 });
+
 ;
 
 // --- Démarrage serveur ---
