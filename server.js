@@ -1,5 +1,4 @@
-// server.js
-require('dotenv').config(); // 🔐 Charge les variables d'environnement
+require('dotenv').config();
 
 const express = require("express");
 const cors = require("cors");
@@ -11,7 +10,7 @@ const paypal = require('@paypal/checkout-server-sdk');
 const app = express();
 const DB_PATH = path.join(__dirname, "public", "lots.json");
 const TICKETS_DB_PATH = path.join(__dirname, "tickets.json");
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "levy770"; // 🔐 Mot de passe sécurisé
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "levy770";
 const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 
 app.use(cors());
@@ -25,7 +24,6 @@ async function readDatabase(filePath) {
     return fileContent ? JSON.parse(fileContent) : [];
   } catch (error) {
     if (error.code === 'ENOENT') return [];
-    // Pour toute autre erreur, on la propage pour que l'appelant la gère
     console.error(`Erreur de lecture de la base de données ${filePath}:`, error);
     throw error;
   }
@@ -49,7 +47,7 @@ app.post('/api/login', (req, res) => {
   res.json({ message: "Connexion réussie" });
 });
 
-// --- API lots ---
+// --- API lots avec tickets restants ---
 app.get("/api/lots", async (req, res) => {
   try {
     const lots = await readDatabase(DB_PATH);
@@ -72,16 +70,14 @@ app.get("/api/lots", async (req, res) => {
   }
 });
 
-
+// --- API pour sauvegarder les lots ---
 app.post("/api/lots", async (req, res) => {
-  // Sécurité : Vérifier le mot de passe admin envoyé dans les en-têtes
   const password = req.headers['x-admin-password'];
   if (password !== ADMIN_PASSWORD) {
     return res.status(401).json({ message: "Authentification administrateur requise." });
   }
 
   try {
-    // S'assurer que le corps de la requête est bien un tableau avant de sauvegarder
     if (!Array.isArray(req.body)) {
       return res.status(400).json({ message: "Le format des données est incorrect (doit être un tableau)." });
     }
@@ -102,39 +98,81 @@ app.post('/api/participants', async (req, res) => {
   res.json(tickets);
 });
 
-// --- API PayPal ---
+// --- API PayPal : config frontend ---
 app.get('/api/config', (req, res) => {
-  // Fournit l'ID client au frontend, en choisissant entre live et sandbox
   const paypalClientId = process.env.PAYPAL_CLIENT_ID;
 
   if (!paypalClientId) {
-    // L'erreur principale est maintenant gérée dans paypal-client.js, mais une vérification ici reste une bonne pratique.
-    console.error("‼️ L'ID client PayPal (PAYPAL_CLIENT_ID) n'est pas configuré dans les variables d'environnement.");
+    console.error("‼️ PAYPAL_CLIENT_ID manquant dans les variables d'environnement.");
     return res.status(500).json({ error: "Configuration de paiement du serveur incomplète." });
   }
   res.json({ paypalClientId });
 });
 
+// --- API PayPal : création de commande ---
+app.post('/api/paypal/create-order', async (req, res) => {
+  const { lotId } = req.body;
+  if (!lotId) return res.status(400).json({ error: "ID du lot manquant." });
+
+  try {
+    const lots = await readDatabase(DB_PATH);
+    const tickets = await readDatabase(TICKETS_DB_PATH);
+    const lot = lots.find(l => l.id === lotId);
+
+    if (!lot) return res.status(404).json({ error: "Lot non trouvé." });
+
+    const vendus = tickets.filter(t => t.lotId === lot.id).length;
+    if (lot.totalTickets && vendus >= lot.totalTickets) {
+      return res.status(400).json({ error: "Ce lot est épuisé. Aucun ticket disponible." });
+    }
+
+    const prix = parseFloat(lot.prix);
+    if (isNaN(prix) || prix <= 0) {
+      console.error(`Prix invalide pour le lot ${lotId}: '${lot.prix}'`);
+      return res.status(400).json({ error: "Prix invalide." });
+    }
+
+    const request = new paypal.orders.OrdersCreateRequest();
+    request.prefer("return=representation");
+    request.requestBody({
+      intent: 'CAPTURE',
+      purchase_units: [{
+        amount: { currency_code: 'EUR', value: prix.toFixed(2) },
+        description: `Ticket pour le tirage: ${lot.nom}`,
+        custom_id: lot.id
+      }]
+    });
+
+    const order = await client.execute(request);
+    res.status(201).json({ id: order.result.id });
+
+  } catch (err) {
+    console.error("Erreur création commande PayPal:", err);
+    res.status(500).json({ error: "Impossible de créer la commande PayPal." });
+  }
+});
+
+// --- API PayPal : capture du paiement ---
 app.post('/api/paypal/capture-order', async (req, res) => {
   const { orderID, lotId } = req.body;
   if (!orderID || !lotId) {
     return res.status(400).json({ error: "ID de commande ou ID du lot manquant." });
   }
 
-    const request = new paypal.orders.OrdersCaptureRequest(orderID);
+  console.log("📦 Données reçues pour capture :", { orderID, lotId });
+
+  const request = new paypal.orders.OrdersCaptureRequest(orderID);
   request.requestBody({});
 
   try {
     const capture = await client.execute(request);
     const details = capture.result;
 
-    // Vérification de la réponse PayPal
     if (!details || !details.payer || !details.purchase_units || !details.purchase_units[0]) {
       console.error("⚠️ Réponse PayPal incomplète :", JSON.stringify(details, null, 2));
       return res.status(500).json({ error: "Réponse inattendue de PayPal. Paiement non capturé." });
     }
 
-    // Enregistrement du ticket si le paiement est complété
     if (details.status === 'COMPLETED') {
       const nouveauTicket = {
         ticketId: `ticket_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -159,35 +197,13 @@ app.post('/api/paypal/capture-order', async (req, res) => {
       }
     }
 
-    // Réponse au frontend
     res.status(200).json(details);
 
-  } catch (err) {
-    console.error("❌ Erreur lors de la capture de la commande PayPal.");
-    console.error("===================================================");
-    console.error(`ID de la commande qui a échoué : ${orderID}`);
-    
-    // Les erreurs de l'API PayPal sont souvent des objets HttpError avec des détails utiles
-    if (err.statusCode) {
-      console.error(`Code de statut HTTP : ${err.statusCode}`);
-      // Le message d'erreur est souvent une chaîne JSON, essayons de la parser.
-      try {
-        const errorDetails = JSON.parse(err.message);
-        console.error("Détails de l'erreur PayPal :", JSON.stringify(errorDetails, null, 2));
-      } catch (e) {
-        // Si ce n'est pas du JSON, on affiche le message brut
-        console.error("Message d'erreur brut :", err.message);
-      }
-    } else {
-      // Pour les erreurs non-HTTP (ex: problème réseau, erreur de programmation)
-      console.error("Erreur non-HTTP ou inattendue :", err);
-    }
-    console.error("===================================================");
-    res.status(500).json({ error: "La validation du paiement a échoué. Veuillez vérifier les logs du serveur." });
+  } catch (error) {
+    console.error("Erreur lors de la capture de la commande :", JSON.stringify(error, null, 2));
+    res.status(500).json({ error: "La validation du paiement a échoué." });
   }
 });
-
-;
 
 // --- Démarrage serveur ---
 const PORT = process.env.PORT || 3000;
