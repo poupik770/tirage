@@ -196,13 +196,23 @@
           console.warn("Lot ignoré car il n'a pas d'ID:", lot);
           return;
         }
-        div.setAttribute('data-lot-id', lot.id); 
+        div.setAttribute('data-lot-id', lot.id);
+
+        const ticketsVendus = lot.ticketsVendus || 0;
+        const ticketsRestants = lot.totalTickets - ticketsVendus;
+        const estEpuise = typeof lot.totalTickets !== 'undefined' && ticketsRestants <= 0;
+
+        let ticketsInfoHtml = '';
+        if (typeof lot.totalTickets !== 'undefined') {
+            ticketsInfoHtml = `<p>Tickets restants : <strong>${ticketsRestants > 0 ? ticketsRestants : 0} / ${lot.totalTickets}</strong></p>`;
+        }
 
         div.innerHTML = `
           <img src="${lot.image}" alt="${lot.nom}" class="lot-image">
           <div class="lot-details">
             <h3>${lot.nom}</h3>
             <p>Prix du ticket : <strong>${lot.prix} €</strong></p>
+            ${ticketsInfoHtml}
             <p>Tirage le : ${new Date(lot.date).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
             <!-- Le bouton PayPal sera rendu ici -->
             <div id="paypal-button-container-${lot.id}" style="margin-top: 1rem;"></div>
@@ -210,7 +220,12 @@
         `;
         liste.appendChild(div);
 
-        renderPayPalButton(lot);
+        if (estEpuise) {
+          const paypalContainer = div.querySelector(`#paypal-button-container-${lot.id}`);
+          paypalContainer.innerHTML = '<p style="color: red; font-weight: bold;">Épuisé !</p>';
+        } else {
+          renderPayPalButton(lot);
+        }
       });
     }
 
