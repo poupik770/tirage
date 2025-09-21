@@ -9,8 +9,13 @@ const paypal = require('@paypal/checkout-server-sdk');
 const nodemailer = require('nodemailer');
 
 const app = express();
-const DB_PATH = path.join(__dirname, "public", "lots.json");
-const TICKETS_DB_PATH = path.join(__dirname, "tickets.json");
+// --- Configuration des chemins de base de données ---
+// Sur Render, nous utilisons un disque persistant pour éviter de perdre les données à chaque déploiement.
+// Le chemin est fourni par la variable d'environnement RENDER_DISK_MOUNT_PATH.
+// En local, les fichiers seront stockés à la racine du projet.
+const DATA_DIR = process.env.RENDER_DISK_MOUNT_PATH || __dirname;
+const DB_PATH = path.join(DATA_DIR, "lots.json");
+const TICKETS_DB_PATH = path.join(DATA_DIR, "tickets.json");
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "levy770";
 const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 
@@ -32,7 +37,9 @@ const transporter = nodemailer.createTransport({
 // Vérification de la connexion SMTP au démarrage du serveur
 transporter.verify(function(error, success) {
   if (error || !process.env.EMAIL_USER) {
-    console.error("⚠️  Service d'email non configuré ou erreur. Les emails ne seront pas envoyés.", error ? error.message : "EMAIL_USER non défini.");
+    const reason = error ? error.message : "EMAIL_USER non défini";
+    console.error(`⚠️  Service d'email non configuré ou erreur. Les emails ne seront pas envoyés.`);
+    console.error(`   Raison : ${reason}. Assurez-vous que les variables EMAIL_* sont bien définies dans votre fichier .env.`);
   } else {
     console.log("✅ Service d'email prêt à envoyer des confirmations.");
   }
@@ -240,6 +247,13 @@ app.post('/api/paypal/capture-order', async (req, res) => {
         // --- Envoi de l'email de confirmation ---
         if (lot && process.env.EMAIL_USER) {
           try {
+            // Le montant capturé se trouve dans un chemin plus profond pour une capture réussie.
+            // On utilise l'optional chaining (?.) pour éviter une erreur si la structure change.
+            const capturedPayment = details.purchase_units?.[0]?.payments?.captures?.[0];
+            const amountDisplay = capturedPayment
+              ? `${capturedPayment.amount.value} ${capturedPayment.amount.currency_code}`
+              : 'Montant non disponible'; // Fallback sécurisé
+
             const mailOptions = {
               from: `"Tirage Exclusif" <${process.env.EMAIL_USER}>`,
               to: payerInfo.email,
@@ -249,7 +263,7 @@ app.post('/api/paypal/capture-order', async (req, res) => {
                 <p>Bonjour ${payerInfo.name},</p>
                 <p>Nous vous confirmons votre achat de <strong>${numQuantity} ticket(s)</strong> pour le tirage du lot suivant :</p>
                 <h2>${lot.nom}</h2>
-                <p><strong>Montant total :</strong> ${details.purchase_units[0].amount.value} €</p>
+                <p><strong>Montant total :</strong> ${amountDisplay}</p>
                 <p><strong>Numéro de transaction :</strong> ${orderID}</p>
                 <p>Le tirage au sort aura lieu le ${new Date(lot.date).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', 'year': 'numeric' })}. Nous vous souhaitons bonne chance !</p>
                 <br>
