@@ -171,12 +171,13 @@
       lots.forEach(lot => {
         const div = document.createElement("div");
         div.className = "lot-item";
-        const ticketsVendus = lot.ticketsVendus || 0; // Default to 0 if not provided
+        // On calcule le nombre de tickets vendus à partir des données de l'API (total - restants)
+        const ticketsVendus = (lot.ticketsRestants !== null) ? (lot.totalTickets - lot.ticketsRestants) : 0;
         div.innerHTML = `
           <strong>${lot.nom}</strong><br>
           <img src="${lot.image}" alt="${lot.nom}" style="width:100%;max-height:200px;object-fit:cover;"><br>
           🎟️ ${lot.prix} €<br>
-          🎫 Tickets : ${ticketsVendus} vendus / ${lot.totalTickets} au total<br>
+          🎫 Tickets : ${ticketsVendus} vendus / ${lot.totalTickets || 'N/A'} au total<br>
           📅 Tirage: ${lot.date}<br>
           <button class="modif">Modifier</button>
           <button class="delete">Supprimer</button>
