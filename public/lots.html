@@ -109,6 +109,18 @@
       border: 1px solid #ccc;
       border-radius: 4px;
     }
+    .countdown-timer {
+      font-weight: 600;
+      color: #c53030; /* Rouge pour l'urgence */
+      margin: 0.75rem 0;
+      font-size: 1rem;
+      text-align: center;
+      background-color: #fefcbf; /* Fond jaune clair */
+      padding: 0.5rem;
+      border-radius: 4px;
+      border: 1px solid #fbd38d;
+      transition: background-color 0.3s, color 0.3s;
+    }
     .footer {
       text-align: center;
       padding: 2rem;
@@ -228,6 +240,7 @@
             <p>Prix du ticket : <strong>${lot.prix} €</strong></p>
             ${ticketsInfoHtml}
             <p>Tirage le : ${new Date(lot.date).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
+            <div id="countdown-${lot.id}" class="countdown-timer"></div>
             <div class="quantity-selector">
               <label for="quantity-${lot.id}">Quantité :</label>
               <input type="number" id="quantity-${lot.id}" value="1" min="1" ${ticketsRestants !== null ? `max="${ticketsRestants}"` : ''} aria-label="Quantité">
@@ -238,6 +251,9 @@
         `;
         liste.appendChild(div);
 
+        // Une fois l'élément ajouté au DOM, on lance le compte à rebours
+        startCountdown(`countdown-${lot.id}`, lot.date);
+
         if (estEpuise) {
           const paypalContainer = div.querySelector(`#paypal-button-container-${lot.id}`);
           paypalContainer.innerHTML = '<p style="color: red; font-weight: bold;">Épuisé !</p>';
@@ -245,6 +261,32 @@
           renderPayPalButton(lot);
         }
       });
+    }
+
+    function startCountdown(elementId, targetDate) {
+      const countdownElement = document.getElementById(elementId);
+      if (!countdownElement) return;
+
+      const interval = setInterval(() => {
+        const now = new Date().getTime();
+        const target = new Date(targetDate).getTime();
+        const distance = target - now;
+
+        if (distance < 0) {
+          clearInterval(interval);
+          countdownElement.innerHTML = "<strong>Tirage terminé !</strong>";
+          countdownElement.style.color = '#333';
+          countdownElement.style.backgroundColor = '#e2e8f0';
+          return;
+        }
+
+        const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+        countdownElement.innerHTML = `Temps restant : <strong>${days}j ${hours}h ${minutes}m ${seconds}s</strong>`;
+      }, 1000);
     }
 
     function renderPayPalButton(lot) {
