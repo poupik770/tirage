@@ -96,6 +96,19 @@
       color: #4a5568;
       flex-grow: 1;
     }
+    .quantity-selector {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-top: 1rem;
+    }
+    .quantity-selector input {
+      width: 60px;
+      padding: 0.5rem;
+      text-align: center;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
     .footer {
       text-align: center;
       padding: 2rem;
@@ -215,8 +228,12 @@
             <p>Prix du ticket : <strong>${lot.prix} €</strong></p>
             ${ticketsInfoHtml}
             <p>Tirage le : ${new Date(lot.date).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}</p>
+            <div class="quantity-selector">
+              <label for="quantity-${lot.id}">Quantité :</label>
+              <input type="number" id="quantity-${lot.id}" value="1" min="1" ${ticketsRestants !== null ? `max="${ticketsRestants}"` : ''} aria-label="Quantité">
+            </div>
             <!-- Le bouton PayPal sera rendu ici -->
-            <div id="paypal-button-container-${lot.id}" style="margin-top: 1rem;"></div>
+            <div id="paypal-button-container-${lot.id}" style="margin-top: 0.5rem;"></div>
           </div>
         `;
         liste.appendChild(div);
@@ -232,12 +249,32 @@
 
     function renderPayPalButton(lot) {
       paypal.Buttons({
+        // Vérification avant de montrer le bouton
+        onInit: (data, actions) => {
+          const quantityInput = document.getElementById(`quantity-${lot.id}`);
+          quantityInput.addEventListener('change', () => {
+            const quantity = parseInt(quantityInput.value, 10);
+            const max = parseInt(quantityInput.max, 10);
+            if (quantity > 0 && quantity <= max) {
+              actions.enable();
+            } else {
+              actions.disable();
+            }
+          });
+        },
         createOrder: (data, actions) => {
-          // 2. Appel au backend pour créer une commande PayPal
+          const quantityInput = document.getElementById(`quantity-${lot.id}`);
+          const quantity = parseInt(quantityInput.value, 10);
+
+          if (!quantity || quantity <= 0) {
+            alert("Veuillez entrer une quantité valide.");
+            return actions.reject();
+          }
+
           return fetch(`${BACKEND_URL}/api/paypal/create-order`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ lotId: lot.id }) // Envoi de l'ID du lot au backend
+            body: JSON.stringify({ lotId: lot.id, quantity: quantity })
           }).then(res => {
             if (!res.ok) {
               // Gestion d'erreur améliorée pour mieux diagnostiquer les problèmes serveur
@@ -261,11 +298,14 @@
           });
         },
         onApprove: (data, actions) => {
-          // 3. Appel au backend pour capturer le paiement après approbation de l'utilisateur
+          const quantityInput = document.getElementById(`quantity-${lot.id}`);
+          const quantity = parseInt(quantityInput.value, 10);
+
           return fetch(`${BACKEND_URL}/api/paypal/capture-order`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ orderID: data.orderID, lotId: lot.id })
+            // On envoie la quantité pour que le serveur enregistre le bon nombre de tickets
+            body: JSON.stringify({ orderID: data.orderID, lotId: lot.id, quantity: quantity })
           }).then(res => {
             if (!res.ok) {
               // Si le serveur renvoie une erreur, on la propage pour qu'elle soit attrapée par onError
@@ -273,13 +313,18 @@
             }
             return res.json();
           }).then(details => {
-            alert(`Paiement réussi ! Merci pour votre participation !`);
+            alert(`Paiement de ${details.purchase_units[0].amount.value} € réussi ! Merci pour votre participation !`);
             chargerLots(); // Rafraîchir la liste des lots
           });
         },
         onError: (err) => {
           console.error("Erreur PayPal ou de création de commande:", err);
           alert(`Une erreur est survenue durant le paiement : ${err.message}. Veuillez réessayer.`);
+          // On pourrait vouloir recharger les lots pour s'assurer que le stock est à jour
+          chargerLots();
+        },
+        onCancel: (data) => {
+          console.log("Paiement annulé par l'utilisateur.", data);
         }
       }).render(`#paypal-button-container-${lot.id}`);
     }

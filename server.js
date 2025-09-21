@@ -111,19 +111,29 @@ app.get('/api/config', (req, res) => {
 
 // --- API PayPal : création de commande ---
 app.post('/api/paypal/create-order', async (req, res) => {
-  const { lotId } = req.body;
-  if (!lotId) return res.status(400).json({ error: "ID du lot manquant." });
+  const { lotId, quantity } = req.body;
+  if (!lotId || !quantity) {
+    return res.status(400).json({ error: "ID du lot ou quantité manquante." });
+  }
+
+  const numQuantity = parseInt(quantity, 10);
+  if (isNaN(numQuantity) || numQuantity <= 0) {
+    return res.status(400).json({ error: "La quantité doit être un nombre positif." });
+  }
 
   try {
     const lots = await readDatabase(DB_PATH);
     const tickets = await readDatabase(TICKETS_DB_PATH);
     const lot = lots.find(l => l.id === lotId);
 
-    if (!lot) return res.status(404).json({ error: "Lot non trouvé." });
+    if (!lot) {
+      return res.status(404).json({ error: "Lot non trouvé." });
+    }
 
     const vendus = tickets.filter(t => t.lotId === lot.id).length;
-    if (lot.totalTickets && vendus >= lot.totalTickets) {
-      return res.status(400).json({ error: "Ce lot est épuisé. Aucun ticket disponible." });
+    const ticketsRestants = lot.totalTickets - vendus;
+    if (lot.totalTickets && numQuantity > ticketsRestants) {
+      return res.status(400).json({ error: `Quantité insuffisante. Il ne reste que ${ticketsRestants} ticket(s).` });
     }
 
     const prix = parseFloat(lot.prix);
@@ -132,14 +142,16 @@ app.post('/api/paypal/create-order', async (req, res) => {
       return res.status(400).json({ error: "Prix invalide." });
     }
 
+    const totalValue = (prix * numQuantity).toFixed(2);
+
     const request = new paypal.orders.OrdersCreateRequest();
     request.prefer("return=representation");
     request.requestBody({
       intent: 'CAPTURE',
       purchase_units: [{
-        amount: { currency_code: 'EUR', value: prix.toFixed(2) },
-        description: `Ticket pour le tirage: ${lot.nom}`,
-        custom_id: lot.id
+        amount: { currency_code: 'EUR', value: totalValue },
+        description: `${numQuantity} x Ticket(s) pour le tirage: ${lot.nom}`,
+        custom_id: lot.id // Gardé pour référence, pourrait contenir lotId et quantity
       }]
     });
 
@@ -154,12 +166,17 @@ app.post('/api/paypal/create-order', async (req, res) => {
 
 // --- API PayPal : capture du paiement ---
 app.post('/api/paypal/capture-order', async (req, res) => {
-  const { orderID, lotId } = req.body;
-  if (!orderID || !lotId) {
-    return res.status(400).json({ error: "ID de commande ou ID du lot manquant." });
+  const { orderID, lotId, quantity } = req.body;
+  if (!orderID || !lotId || !quantity) {
+    return res.status(400).json({ error: "Données de commande incomplètes (orderID, lotId, quantity)." });
   }
 
-  console.log("📦 Données reçues pour capture :", { orderID, lotId });
+  const numQuantity = parseInt(quantity, 10);
+  if (isNaN(numQuantity) || numQuantity <= 0) {
+    return res.status(400).json({ error: "Quantité invalide." });
+  }
+
+  console.log("📦 Données reçues pour capture :", { orderID, lotId, quantity: numQuantity });
 
   const request = new paypal.orders.OrdersCaptureRequest(orderID);
   request.requestBody({});
@@ -174,25 +191,31 @@ app.post('/api/paypal/capture-order', async (req, res) => {
     }
 
     if (details.status === 'COMPLETED') {
-      const nouveauTicket = {
-        ticketId: `ticket_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        lotId,
-        orderId: orderID,
-        purchaseDate: new Date().toISOString(),
-        payer: {
-          name: `${details.payer.name.given_name} ${details.payer.name.surname}`,
-          email: details.payer.email_address
-        }
-      };
-
       try {
         const tickets = await readDatabase(TICKETS_DB_PATH);
-        tickets.push(nouveauTicket);
+        const payerInfo = {
+          name: `${details.payer.name.given_name} ${details.payer.name.surname}`,
+          email: details.payer.email_address
+        };
+
+        // Boucle pour créer le nombre de tickets achetés
+        for (let i = 0; i < numQuantity; i++) {
+          const nouveauTicket = {
+            ticketId: `ticket_${Date.now()}_${Math.random().toString(36).substr(2, 9)}_${i}`,
+            lotId,
+            orderId: orderID,
+            purchaseDate: new Date().toISOString(),
+            payer: payerInfo
+          };
+          tickets.push(nouveauTicket);
+        }
+
         await writeDatabase(TICKETS_DB_PATH, tickets);
-        console.log(`✅ Ticket enregistré pour ${lotId}, payé par ${details.payer.email_address}`);
+        console.log(`✅ ${numQuantity} ticket(s) enregistré(s) pour ${lotId}, payé par ${payerInfo.email}`);
       } catch (dbError) {
         console.error("‼️ ERREUR CRITIQUE : Paiement capturé mais enregistrement du ticket échoué.");
-        console.error("Ticket à enregistrer manuellement :", JSON.stringify(nouveauTicket, null, 2));
+        console.error(`Détails de la transaction : orderID=${orderID}, lotId=${lotId}, quantity=${numQuantity}`);
+        console.error(`Infos acheteur : ${JSON.stringify(details.payer, null, 2)}`);
         console.error("Erreur :", dbError);
       }
     }
@@ -200,8 +223,8 @@ app.post('/api/paypal/capture-order', async (req, res) => {
     res.status(200).json(details);
 
   } catch (error) {
-    console.error("Erreur lors de la capture de la commande :", JSON.stringify(error, null, 2));
-    res.status(500).json({ error: "La validation du paiement a échoué." });
+    console.error("Erreur lors de la capture de la commande :", JSON.stringify(error, null, 2)); // Gardons l'ancien log pour le moment
+    res.status(500).json({ error: "La validation du paiement a échoué. Veuillez vérifier les logs du serveur." });
   }
 });
 
