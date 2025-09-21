@@ -149,21 +149,40 @@
               <th>Nom du Lot</th>
               <th>Nom de l'acheteur</th>
               <th>Email</th>
+              <th>Tickets achetés</th>
               <th>Date d'achat</th>
             </tr>
           </thead>
           <tbody>
       `;
 
-      // On inverse la liste pour voir les plus récents en premier
-      tickets.reverse().forEach(ticket => {
-        const lotName = lotsMap.get(ticket.lotId) || 'Lot inconnu';
+      // On groupe les tickets par commande (orderId) pour compter le nombre de tickets par achat
+      const purchases = {};
+      tickets.forEach(ticket => {
+        // On utilise l'orderId comme clé unique pour une transaction
+        if (!purchases[ticket.orderId]) {
+          purchases[ticket.orderId] = {
+            lotId: ticket.lotId,
+            payer: ticket.payer,
+            purchaseDate: ticket.purchaseDate,
+            count: 0
+          };
+        }
+        purchases[ticket.orderId].count++;
+      });
+
+      // On convertit l'objet en tableau et on le trie par date (plus récent en premier)
+      const sortedPurchases = Object.values(purchases).sort((a, b) => new Date(b.purchaseDate) - new Date(a.purchaseDate));
+
+      sortedPurchases.forEach(purchase => {
+        const lotName = lotsMap.get(purchase.lotId) || 'Lot inconnu';
         tableHTML += `
           <tr>
             <td>${lotName}</td>
-            <td>${ticket.payer.name}</td>
-            <td>${ticket.payer.email}</td>
-            <td>${new Date(ticket.purchaseDate).toLocaleString('fr-FR')}</td>
+            <td>${purchase.payer.name}</td>
+            <td>${purchase.payer.email}</td>
+            <td>${purchase.count}</td>
+            <td>${new Date(purchase.purchaseDate).toLocaleString('fr-FR')}</td>
           </tr>
         `;
       });
