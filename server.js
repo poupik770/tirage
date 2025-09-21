@@ -6,6 +6,7 @@ const path = require("path");
 const fs = require("fs").promises;
 const { client } = require('./paypal-client');
 const paypal = require('@paypal/checkout-server-sdk');
+const nodemailer = require('nodemailer');
 
 const app = express();
 const DB_PATH = path.join(__dirname, "public", "lots.json");
@@ -16,6 +17,26 @@ const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
+
+// --- Configuration du transporteur d'email (Nodemailer) ---
+const transporter = nodemailer.createTransport({
+  host: process.env.EMAIL_HOST,
+  port: parseInt(process.env.EMAIL_PORT || '587', 10),
+  secure: (process.env.EMAIL_PORT === '465'), // true for 465, false for other ports
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
+});
+
+// Vérification de la connexion SMTP au démarrage du serveur
+transporter.verify(function(error, success) {
+  if (error || !process.env.EMAIL_USER) {
+    console.error("⚠️  Service d'email non configuré ou erreur. Les emails ne seront pas envoyés.", error ? error.message : "EMAIL_USER non défini.");
+  } else {
+    console.log("✅ Service d'email prêt à envoyer des confirmations.");
+  }
+});
 
 // --- Fonctions utilitaires ---
 async function readDatabase(filePath) {
@@ -191,6 +212,9 @@ app.post('/api/paypal/capture-order', async (req, res) => {
     }
 
     if (details.status === 'COMPLETED') {
+      // On récupère les infos du lot pour l'email
+      const lots = await readDatabase(DB_PATH);
+      const lot = lots.find(l => l.id === lotId);
       try {
         const tickets = await readDatabase(TICKETS_DB_PATH);
         const payerInfo = {
@@ -212,6 +236,32 @@ app.post('/api/paypal/capture-order', async (req, res) => {
 
         await writeDatabase(TICKETS_DB_PATH, tickets);
         console.log(`✅ ${numQuantity} ticket(s) enregistré(s) pour ${lotId}, payé par ${payerInfo.email}`);
+
+        // --- Envoi de l'email de confirmation ---
+        if (lot && process.env.EMAIL_USER) {
+          try {
+            const mailOptions = {
+              from: `"Tirage Exclusif" <${process.env.EMAIL_USER}>`,
+              to: payerInfo.email,
+              subject: `Confirmation de votre participation au tirage "${lot.nom}"`,
+              html: `
+                <h1>Merci pour votre participation !</h1>
+                <p>Bonjour ${payerInfo.name},</p>
+                <p>Nous vous confirmons votre achat de <strong>${numQuantity} ticket(s)</strong> pour le tirage du lot suivant :</p>
+                <h2>${lot.nom}</h2>
+                <p><strong>Montant total :</strong> ${details.purchase_units[0].amount.value} €</p>
+                <p><strong>Numéro de transaction :</strong> ${orderID}</p>
+                <p>Le tirage au sort aura lieu le ${new Date(lot.date).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', 'year': 'numeric' })}. Nous vous souhaitons bonne chance !</p>
+                <br>
+                <p>L'équipe de Tirage Exclusif</p>
+              `
+            };
+            await transporter.sendMail(mailOptions);
+            console.log(`📧 Email de confirmation envoyé à ${payerInfo.email}`);
+          } catch (emailError) {
+            console.error(`‼️ ERREUR lors de l'envoi de l'email de confirmation à ${payerInfo.email}:`, emailError);
+          }
+        }
       } catch (dbError) {
         console.error("‼️ ERREUR CRITIQUE : Paiement capturé mais enregistrement du ticket échoué.");
         console.error(`Détails de la transaction : orderID=${orderID}, lotId=${lotId}, quantity=${numQuantity}`);
